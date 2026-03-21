@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, getDocs, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, Question, User, Result } from '../types';
 import { Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Loader2, Send, X } from 'lucide-react';
 import { cn, formatDuration } from '../lib/utils';
@@ -17,18 +17,37 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
+  const [answers, setAnswers] = useState<(number | boolean[])[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
+  const [attemptError, setAttemptError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchQuizData = async () => {
       try {
+        // Check attempts first
+        const resultsQ = query(
+          collection(db, 'results'),
+          where('userId', '==', user.uid),
+          where('quizId', '==', quizId)
+        );
+        const resultsSnapshot = await getDocs(resultsQ);
+        const attemptCount = resultsSnapshot.size;
+
         const quizDoc = await getDocs(collection(db, 'quizzes'));
         const foundQuiz = quizDoc.docs.find(doc => doc.id === quizId);
+        
         if (foundQuiz) {
-          setQuiz({ id: foundQuiz.id, ...foundQuiz.data() } as Quiz);
+          const quizData = { id: foundQuiz.id, ...foundQuiz.data() } as Quiz;
+          
+          if (quizData.maxAttempts && quizData.maxAttempts > 0 && attemptCount >= quizData.maxAttempts) {
+            setAttemptError(`Bạn đã hết lượt làm bài thi này (Tối đa: ${quizData.maxAttempts} lượt).`);
+            setLoading(false);
+            return;
+          }
+
+          setQuiz(quizData);
           setTimeLeft(foundQuiz.data().duration * 60);
           
           const questionsSnapshot = await getDocs(collection(db, 'quizzes', quizId, 'questions'));
@@ -37,42 +56,74 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
             ...doc.data()
           })) as Question[];
           setQuestions(questionList);
-          setAnswers(new Array(questionList.length).fill(-1));
+          setAnswers(new Array(questionList.length).fill(-1).map((_, i) => 
+            questionList[i].type === 'true_false' ? [true, true, true, true] : -1
+          ));
         }
       } catch (error) {
         console.error('Error fetching quiz:', error);
+        handleFirestoreError(error, OperationType.GET, `quizzes/${quizId}`);
       } finally {
         setLoading(false);
       }
     };
 
     fetchQuizData();
-  }, [quizId]);
+  }, [quizId, user.uid]);
 
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
     setSubmitting(true);
 
     try {
+      let totalScore = 0;
       let correctCount = 0;
+
       questions.forEach((q, index) => {
-        if (answers[index] === q.correctOptionIndex) {
-          correctCount++;
+        const studentAnswer = answers[index];
+        if (q.type === 'multiple_choice') {
+          if (studentAnswer === q.correctOptionIndex) {
+            correctCount++;
+            totalScore += (10 / questions.length); // Standard weight for MCQ
+          }
+        } else if (q.type === 'true_false' && Array.isArray(studentAnswer)) {
+          let subCorrectCount = 0;
+          q.correctAnswers?.forEach((correct, i) => {
+            if (studentAnswer[i] === correct) {
+              subCorrectCount++;
+            }
+          });
+
+          // TN THPT 2018 Scoring for Part II (True/False):
+          // 1 correct: 0.1 points
+          // 2 correct: 0.25 points
+          // 3 correct: 0.5 points
+          // 4 correct: 1.0 points
+          // (Assuming total score is 10, we scale this)
+          // If we assume each question is worth 1 "unit" of the total 10 points:
+          let questionWeight = 10 / questions.length;
+          if (subCorrectCount === 1) totalScore += questionWeight * 0.1;
+          else if (subCorrectCount === 2) totalScore += questionWeight * 0.25;
+          else if (subCorrectCount === 3) totalScore += questionWeight * 0.5;
+          else if (subCorrectCount === 4) {
+            totalScore += questionWeight * 1.0;
+            correctCount++; // Count as fully correct for stats
+          }
         }
       });
-
-      const score = (correctCount / questions.length) * 10;
 
       await addDoc(collection(db, 'results'), {
         quizId,
         quizTitle: quiz?.title,
+        subject: quiz?.subject,
+        topic: quiz?.topic,
         studentUid: user.uid,
         studentName: user.displayName,
-        score: Number(score.toFixed(2)),
+        score: Number(totalScore.toFixed(2)),
         totalQuestions: questions.length,
         correctAnswers: correctCount,
         completedAt: serverTimestamp(),
-        answers
+        answers: answers.map(a => ({ val: a }))
       });
 
       onComplete();
@@ -103,15 +154,44 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
     setAnswers(newAnswers);
   };
 
+  const handleTFAnswerSelect = (subIndex: number, value: boolean) => {
+    const newAnswers = [...answers];
+    const currentTFAnswers = [...(newAnswers[currentQuestionIndex] as boolean[] || [true, true, true, true])];
+    currentTFAnswers[subIndex] = value;
+    newAnswers[currentQuestionIndex] = currentTFAnswers;
+    setAnswers(newAnswers);
+  };
+
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-stone-400" />
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-stone-300" />
+        <p className="text-stone-500 font-medium">Đang tải bài thi...</p>
       </div>
     );
   }
 
-  if (!quiz) return <div>Không tìm thấy bài thi.</div>;
+  if (attemptError) {
+    return (
+      <div className="max-w-2xl mx-auto py-20 px-6">
+        <div className="bg-white rounded-3xl border border-stone-200 p-10 text-center shadow-xl shadow-stone-200/50">
+          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-10 h-10 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-serif italic font-medium text-stone-900 mb-4">Không thể làm bài thi</h2>
+          <p className="text-stone-500 mb-8">{attemptError}</p>
+          <button
+            onClick={onCancel}
+            className="bg-stone-900 text-white py-3 px-8 rounded-xl hover:bg-stone-800 transition-all font-medium"
+          >
+            Quay lại trang chủ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!quiz) return <div className="text-center py-20 text-stone-500">Không tìm thấy bài thi.</div>;
 
   if (!isStarted) {
     return (
@@ -197,33 +277,70 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
           </h3>
 
           <div className="grid grid-cols-1 gap-4">
-            {currentQuestion.options.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => handleAnswerSelect(index)}
-                className={cn(
-                  "flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all group",
-                  answers[currentQuestionIndex] === index 
-                    ? "border-emerald-500 bg-emerald-50/30 ring-4 ring-emerald-500/5" 
-                    : "border-stone-100 hover:border-stone-200 hover:bg-stone-50"
-                )}
-              >
-                <div className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center font-bold transition-colors",
-                  answers[currentQuestionIndex] === index 
-                    ? "bg-emerald-500 text-white" 
-                    : "bg-stone-100 text-stone-400 group-hover:bg-stone-200"
-                )}>
-                  {String.fromCharCode(65 + index)}
-                </div>
-                <span className={cn(
-                  "text-lg font-medium transition-colors",
-                  answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
-                )}>
-                  {option}
-                </span>
-              </button>
-            ))}
+            {currentQuestion.type === 'multiple_choice' ? (
+              currentQuestion.options.map((option, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleAnswerSelect(index)}
+                  className={cn(
+                    "flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all group",
+                    answers[currentQuestionIndex] === index 
+                      ? "border-emerald-500 bg-emerald-50/30 ring-4 ring-emerald-500/5" 
+                      : "border-stone-100 hover:border-stone-200 hover:bg-stone-50"
+                  )}
+                >
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center font-bold transition-colors",
+                    answers[currentQuestionIndex] === index 
+                      ? "bg-emerald-500 text-white" 
+                      : "bg-stone-100 text-stone-400 group-hover:bg-stone-200"
+                  )}>
+                    {String.fromCharCode(65 + index)}
+                  </div>
+                  <span className={cn(
+                    "text-lg font-medium transition-colors",
+                    answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
+                  )}>
+                    {option}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <div className="space-y-4">
+                {['a', 'b', 'c', 'd'].map((label, index) => (
+                  <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-stone-100 bg-stone-50/30 gap-4">
+                    <div className="flex items-center gap-4 flex-grow">
+                      <span className="font-bold text-emerald-600 w-6">{label}.</span>
+                      <span className="text-stone-700 font-medium">{currentQuestion.options[index]}</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-stone-200 shadow-sm">
+                      <button
+                        onClick={() => handleTFAnswerSelect(index, true)}
+                        className={cn(
+                          "px-6 py-2 rounded-lg text-sm font-bold transition-all",
+                          (answers[currentQuestionIndex] as boolean[])?.[index] === true 
+                            ? "bg-emerald-600 text-white shadow-md" 
+                            : "text-stone-400 hover:text-stone-600 hover:bg-stone-50"
+                        )}
+                      >
+                        Đúng
+                      </button>
+                      <button
+                        onClick={() => handleTFAnswerSelect(index, false)}
+                        className={cn(
+                          "px-6 py-2 rounded-lg text-sm font-bold transition-all",
+                          (answers[currentQuestionIndex] as boolean[])?.[index] === false 
+                            ? "bg-red-600 text-white shadow-md" 
+                            : "text-stone-400 hover:text-stone-600 hover:bg-stone-50"
+                        )}
+                      >
+                        Sai
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

@@ -8,7 +8,8 @@
         "uid": { "type": "string", "description": "ID người dùng từ Firebase Auth" },
         "email": { "type": "string", "format": "email", "description": "Email người dùng" },
         "displayName": { "type": "string", "description": "Tên hiển thị" },
-        "role": { "type": "string", "enum": ["admin", "student"], "description": "Vai trò người dùng" },
+        "role": { "type": "string", "enum": ["admin", "teacher", "student"], "description": "Vai trò người dùng" },
+        "isApproved": { "type": "boolean", "description": "Trạng thái phê duyệt tài khoản" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo tài khoản" }
       },
       "required": ["uid", "email", "role"]
@@ -20,6 +21,8 @@
       "properties": {
         "title": { "type": "string", "description": "Tiêu đề bài thi" },
         "description": { "type": "string", "description": "Mô tả bài thi" },
+        "subject": { "type": "string", "description": "Môn học (Toán, Lý, Hóa...)" },
+        "topic": { "type": "string", "enum": ["regular", "periodic", "graduation"], "description": "Chủ đề bài thi" },
         "duration": { "type": "integer", "description": "Thời gian làm bài (phút)" },
         "createdBy": { "type": "string", "description": "UID của admin tạo đề" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo đề" },
@@ -32,16 +35,22 @@
       "description": "Câu hỏi trong một bộ đề thi.",
       "type": "object",
       "properties": {
+        "type": { "type": "string", "enum": ["multiple_choice", "true_false"], "description": "Loại câu hỏi" },
         "text": { "type": "string", "description": "Nội dung câu hỏi" },
         "options": {
           "type": "array",
           "items": { "type": "string" },
           "description": "Danh sách các lựa chọn trả lời"
         },
-        "correctOptionIndex": { "type": "integer", "description": "Vị trí của đáp án đúng (0-based)" },
+        "correctOptionIndex": { "type": "integer", "description": "Vị trí của đáp án đúng (0-based) cho câu hỏi nhiều lựa chọn" },
+        "correctAnswers": {
+          "type": "array",
+          "items": { "type": "boolean" },
+          "description": "Danh sách đáp án Đúng/Sai cho 4 ý (a, b, c, d)"
+        },
         "explanation": { "type": "string", "description": "Giải thích đáp án" }
       },
-      "required": ["text", "options", "correctOptionIndex"]
+      "required": ["type", "text", "options"]
     },
     "Result": {
       "title": "Result",
@@ -57,8 +66,8 @@
         "completedAt": { "type": "string", "format": "date-time", "description": "Thời gian nộp bài" },
         "answers": {
           "type": "array",
-          "items": { "type": "integer" },
-          "description": "Danh sách các đáp án học sinh đã chọn"
+          "items": { "type": "any" },
+          "description": "Danh sách các đáp án học sinh đã chọn (số cho MCQ, mảng boolean cho T/F)"
         }
       },
       "required": ["quizId", "studentUid", "score", "completedAt"]

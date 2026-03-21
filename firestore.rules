@@ -11,7 +11,7 @@ service cloud.firestore {
     //   - uid: string (required) - ID người dùng
     //   - email: string (required) - Email người dùng
     //   - displayName: string (optional) - Tên hiển thị
-    //   - role: string (required, enum: ['admin', 'student']) - Vai trò
+    //   - role: string (required, enum: ['admin', 'teacher', 'student', 'guest']) - Vai trò
     //   - createdAt: timestamp (required) - Ngày tạo
     //
     // Collection: quizzes
@@ -20,6 +20,7 @@ service cloud.firestore {
     //   - title: string (required, max 200) - Tiêu đề
     //   - description: string (optional, max 1000) - Mô tả
     //   - duration: number (required, positive) - Thời gian làm bài (phút)
+    //   - maxAttempts: number (optional, >= 0) - Số lượt thi tối đa
     //   - createdBy: string (required) - UID admin
     //   - createdAt: timestamp (required) - Ngày tạo
     //   - isActive: bool (required) - Trạng thái
@@ -57,10 +58,21 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function isApproved() {
+      return isAuthenticated() && 
+        ((request.auth.token.email == "nguyenphuongaistudent@gmail.com" && request.auth.token.email_verified == true) ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isApproved == true));
+    }
+
     function isAdmin() {
       return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-         (request.auth.token.email == "nguyenphuongaistudent@gmail.com" && request.auth.token.email_verified == true));
+        ((request.auth.token.email == "nguyenphuongaistudent@gmail.com" && request.auth.token.email_verified == true) ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    function isTeacher() {
+      return isApproved() && 
+        (isAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher'));
     }
 
     function hasRequiredFields(fields) {
@@ -76,36 +88,46 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'role', 'createdAt']) &&
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'role', 'createdAt', 'isApproved']) &&
              data.uid is string && data.uid.size() > 0 &&
              data.email is string && data.email.size() > 0 &&
-             data.role in ['admin', 'student'];
+             data.role in ['admin', 'teacher', 'student', 'guest'] &&
+             data.isApproved is bool;
     }
 
     function isValidQuiz(data) {
-      return hasOnlyAllowedFields(['title', 'description', 'duration', 'createdBy', 'createdAt', 'isActive', 'updatedAt']) &&
-             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
-             data.duration is number && data.duration > 0 &&
-             data.createdBy is string &&
-             data.isActive is bool;
+      return hasOnlyAllowedFields(['title', 'description', 'subject', 'topic', 'duration', 'maxAttempts', 'createdBy', 'createdAt', 'isActive', 'updatedAt']) &&
+             (!('title' in data) || (data.title is string && data.title.size() > 0 && data.title.size() <= 200)) &&
+             (!('subject' in data) || (data.subject is string && data.subject.size() > 0)) &&
+             (!('topic' in data) || (data.topic in ['regular', 'periodic', 'graduation'])) &&
+             (!('duration' in data) || (data.duration is number && data.duration > 0)) &&
+             (!('maxAttempts' in data) || (data.maxAttempts is number && data.maxAttempts >= 0)) &&
+             (!('createdBy' in data) || (data.createdBy is string)) &&
+             (!('isActive' in data) || (data.isActive is bool));
     }
 
     function isValidQuestion(data) {
-      return hasOnlyAllowedFields(['text', 'options', 'correctOptionIndex', 'explanation']) &&
+      return hasOnlyAllowedFields(['type', 'text', 'options', 'correctOptionIndex', 'correctAnswers', 'explanation']) &&
+             data.type in ['multiple_choice', 'true_false'] &&
              data.text is string && data.text.size() > 0 && data.text.size() <= 2000 &&
              data.options is list && data.options.size() >= 2 && data.options.size() <= 10 &&
-             data.correctOptionIndex is number && data.correctOptionIndex >= 0 && data.correctOptionIndex < data.options.size();
+             (data.type == 'multiple_choice' ? 
+               (data.correctOptionIndex is number && data.correctOptionIndex >= 0 && data.correctOptionIndex < data.options.size()) : 
+               (data.correctAnswers is list && data.correctAnswers.size() == 4)) &&
+             (data.explanation is string);
     }
 
     function isValidResult(data) {
-      return hasOnlyAllowedFields(['quizId', 'quizTitle', 'studentUid', 'studentName', 'score', 'totalQuestions', 'correctAnswers', 'completedAt', 'answers']) &&
-             data.quizId is string &&
-             data.studentUid is string &&
-             data.studentName is string &&
-             data.score is number &&
-             data.totalQuestions is number &&
-             data.correctAnswers is number &&
-             data.answers is list;
+      return hasOnlyAllowedFields(['quizId', 'quizTitle', 'subject', 'topic', 'studentUid', 'studentName', 'score', 'totalQuestions', 'correctAnswers', 'completedAt', 'answers']) &&
+             (!('quizId' in data) || data.quizId is string) &&
+             (!('subject' in data) || data.subject is string) &&
+             (!('topic' in data) || data.topic in ['regular', 'periodic', 'graduation']) &&
+             (!('studentUid' in data) || data.studentUid is string) &&
+             (!('studentName' in data) || data.studentName is string) &&
+             (!('score' in data) || data.score is number) &&
+             (!('totalQuestions' in data) || data.totalQuestions is number) &&
+             (!('correctAnswers' in data) || data.correctAnswers is number) &&
+             (!('answers' in data) || data.answers is list);
     }
 
     // ===============================================================
@@ -114,27 +136,34 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'student';
-      allow update: if isAuthenticated() && (isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role && isValidUser(request.resource.data)));
+      allow create: if isAuthenticated() && (isAdmin() || (isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == 'student' || (request.resource.data.email == "nguyenphuongaistudent@gmail.com" && request.resource.data.role == 'admin'))));
+      allow update: if isAuthenticated() && 
+        (isAdmin() || 
+         isTeacher() && isValidUser(request.resource.data) && request.resource.data.role != 'admin' ||
+         (isOwner(userId) && isValidUser(request.resource.data) && 
+          (request.resource.data.role == resource.data.role || (request.resource.data.email == "nguyenphuongaistudent@gmail.com" && request.resource.data.role == 'admin'))
+         )
+        );
+      allow delete: if isAdmin();
     }
 
     match /quizzes/{quizId} {
-      allow read: if isAuthenticated();
-      allow create: if isAdmin() && isValidQuiz(request.resource.data);
-      allow update: if isAdmin() && isValidQuiz(request.resource.data);
-      allow delete: if isAdmin();
+      allow read: if isApproved();
+      allow create: if isTeacher() && isValidQuiz(request.resource.data);
+      allow update: if isTeacher() && isValidQuiz(request.resource.data);
+      allow delete: if isTeacher();
 
       match /questions/{questionId} {
-        allow read: if isAuthenticated();
-        allow create: if isAdmin() && isValidQuestion(request.resource.data);
-        allow update: if isAdmin() && isValidQuestion(request.resource.data);
-        allow delete: if isAdmin();
+        allow read: if isApproved();
+        allow create: if isTeacher() && isValidQuestion(request.resource.data);
+        allow update: if isTeacher() && isValidQuestion(request.resource.data);
+        allow delete: if isTeacher();
       }
     }
 
     match /results/{resultId} {
-      allow read: if isAuthenticated() && (isAdmin() || resource.data.studentUid == request.auth.uid);
-      allow create: if isAuthenticated() && request.resource.data.studentUid == request.auth.uid && isValidResult(request.resource.data);
+      allow read: if isApproved();
+      allow create: if isApproved() && request.resource.data.studentUid == request.auth.uid && isValidResult(request.resource.data);
     }
   }
 }

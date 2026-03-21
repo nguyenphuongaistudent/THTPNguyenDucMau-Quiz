@@ -78,6 +78,16 @@ export default function Results({ user }: ResultsProps) {
                 <div className="flex items-center gap-2 mb-1">
                   <BookOpen className="w-4 h-4 text-stone-400" />
                   <h3 className="text-lg font-medium text-stone-900">{result.quizTitle || "Bài thi trắc nghiệm"}</h3>
+                  {result.subject && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-stone-100 rounded text-stone-500 font-bold uppercase tracking-tighter">
+                      {result.subject}
+                    </span>
+                  )}
+                  {result.topic && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-emerald-50 rounded text-emerald-600 font-bold uppercase tracking-tighter">
+                      {result.topic === 'regular' ? 'Thường xuyên' : result.topic === 'periodic' ? 'Định kỳ' : 'Giải đề'}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-stone-500">
                   <span className="flex items-center gap-1.5">
