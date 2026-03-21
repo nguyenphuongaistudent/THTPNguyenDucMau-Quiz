@@ -17,7 +17,13 @@ export const parseJSON = (content: string): ImportedQuiz => {
     if (!data.title || !Array.isArray(data.questions)) {
       throw new Error('Định dạng JSON không hợp lệ. Cần có "title" và "questions".');
     }
-    return data as ImportedQuiz;
+    return {
+      ...data,
+      questions: data.questions.map((q: any, index: number) => ({
+        ...q,
+        order: q.order !== undefined ? q.order : index
+      }))
+    } as ImportedQuiz;
   } catch (error: any) {
     throw new Error('Lỗi khi đọc file JSON: ' + error.message);
   }
@@ -101,7 +107,8 @@ export const parseWord = async (arrayBuffer: ArrayBuffer): Promise<ImportedQuiz>
             options: [],
             correctOptionIndex: currentType === 'multiple_choice' ? 0 : undefined,
             correctAnswers: currentType === 'true_false' ? [] : undefined,
-            explanation: ''
+            explanation: '',
+            order: questions.length
           };
           continue;
         }

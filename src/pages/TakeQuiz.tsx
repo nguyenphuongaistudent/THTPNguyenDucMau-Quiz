@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, query, where, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, Question, User, Result } from '../types';
 import { Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Loader2, Send, X } from 'lucide-react';
@@ -50,7 +50,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
           setQuiz(quizData);
           setTimeLeft(foundQuiz.data().duration * 60);
           
-          const questionsSnapshot = await getDocs(collection(db, 'quizzes', quizId, 'questions'));
+          const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', quizId, 'questions'), orderBy('order')));
           const questionList = questionsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()

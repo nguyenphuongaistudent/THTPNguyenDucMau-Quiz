@@ -53,7 +53,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   const handleEditQuiz = async (quiz: Quiz) => {
     setEditingQuiz(quiz);
     setSaving(true);
-    const questionsSnapshot = await getDocs(collection(db, 'quizzes', quiz.id, 'questions'));
+    const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', quiz.id, 'questions'), orderBy('order')));
     const questionList = questionsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -79,7 +79,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       options: ['', '', '', ''],
       correctOptionIndex: 0,
       correctAnswers: [true, true, true, true],
-      explanation: ''
+      explanation: '',
+      order: 0
     }]);
     setOriginalQuestionIds([]);
     setIsModalOpen(true);
@@ -94,13 +95,14 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       duration: imported.duration,
       isActive: true
     });
-    setEditingQuestions(imported.questions.map(q => ({
+    setEditingQuestions(imported.questions.map((q, index) => ({
       ...q,
       type: q.type || 'multiple_choice',
       options: q.options || ['', '', '', ''],
       correctOptionIndex: q.correctOptionIndex ?? 0,
       correctAnswers: q.correctAnswers || [true, true, true, true],
-      explanation: q.explanation || ''
+      explanation: q.explanation || '',
+      order: q.order ?? index
     })));
     setOriginalQuestionIds([]);
     setIsModalOpen(true);
@@ -108,7 +110,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 
   const handleExportQuiz = async (quiz: Quiz) => {
     try {
-      const questionsSnapshot = await getDocs(collection(db, 'quizzes', quiz.id, 'questions'));
+      const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', quiz.id, 'questions'), orderBy('order')));
       const questions = questionsSnapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -117,7 +119,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
           options: data.options,
           correctOptionIndex: data.correctOptionIndex,
           correctAnswers: data.correctAnswers,
-          explanation: data.explanation
+          explanation: data.explanation,
+          order: data.order
         };
       });
 
@@ -204,11 +207,13 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       // Track which IDs are being kept/updated
       const keptQuestionIds = new Set<string>();
 
-      for (const q of validQuestions) {
+      for (let i = 0; i < validQuestions.length; i++) {
+        const q = validQuestions[i];
         const qData: any = {
           type: q.type || 'multiple_choice',
           text: q.text,
-          explanation: q.explanation || ''
+          explanation: q.explanation || '',
+          order: i // Use the current index in validQuestions to preserve order
         };
 
         if (q.id) {
@@ -320,7 +325,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       options: ['', '', '', ''],
       correctOptionIndex: 0,
       correctAnswers: [true, true, true, true],
-      explanation: ''
+      explanation: '',
+      order: editingQuestions.length
     }]);
   };
 

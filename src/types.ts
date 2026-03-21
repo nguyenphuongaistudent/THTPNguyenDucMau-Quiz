@@ -37,6 +37,7 @@ export interface Question {
   correctOptionIndex?: number; // For multiple_choice: index of correct option.
   correctAnswers?: boolean[]; // For true_false: array of 4 booleans [true, false, true, true] for a, b, c, d.
   explanation?: string;
+  order: number;
 }
 
 export interface Result {
