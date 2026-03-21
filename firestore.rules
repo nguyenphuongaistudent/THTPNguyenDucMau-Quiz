@@ -1,0 +1,140 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required) - ID người dùng
+    //   - email: string (required) - Email người dùng
+    //   - displayName: string (optional) - Tên hiển thị
+    //   - role: string (required, enum: ['admin', 'student']) - Vai trò
+    //   - createdAt: timestamp (required) - Ngày tạo
+    //
+    // Collection: quizzes
+    // Document ID: {quizId}
+    // Fields:
+    //   - title: string (required, max 200) - Tiêu đề
+    //   - description: string (optional, max 1000) - Mô tả
+    //   - duration: number (required, positive) - Thời gian làm bài (phút)
+    //   - createdBy: string (required) - UID admin
+    //   - createdAt: timestamp (required) - Ngày tạo
+    //   - isActive: bool (required) - Trạng thái
+    //
+    // Collection: quizzes/{quizId}/questions
+    // Document ID: {questionId}
+    // Fields:
+    //   - text: string (required, max 2000) - Nội dung câu hỏi
+    //   - options: list (required, size 2-10) - Các lựa chọn
+    //   - correctOptionIndex: number (required, 0-9) - Đáp án đúng
+    //   - explanation: string (optional, max 2000) - Giải thích
+    //
+    // Collection: results
+    // Document ID: {resultId}
+    // Fields:
+    //   - quizId: string (required) - ID bài thi
+    //   - studentUid: string (required) - UID học sinh
+    //   - studentName: string (required) - Tên học sinh
+    //   - score: number (required) - Điểm số
+    //   - totalQuestions: number (required) - Tổng số câu
+    //   - correctAnswers: number (required) - Số câu đúng
+    //   - completedAt: timestamp (required) - Thời gian nộp
+    //   - answers: list (required) - Các đáp án đã chọn
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "nguyenphuongaistudent@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'role', 'createdAt']) &&
+             data.uid is string && data.uid.size() > 0 &&
+             data.email is string && data.email.size() > 0 &&
+             data.role in ['admin', 'student'];
+    }
+
+    function isValidQuiz(data) {
+      return hasOnlyAllowedFields(['title', 'description', 'duration', 'createdBy', 'createdAt', 'isActive', 'updatedAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.duration is number && data.duration > 0 &&
+             data.createdBy is string &&
+             data.isActive is bool;
+    }
+
+    function isValidQuestion(data) {
+      return hasOnlyAllowedFields(['text', 'options', 'correctOptionIndex', 'explanation']) &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 2000 &&
+             data.options is list && data.options.size() >= 2 && data.options.size() <= 10 &&
+             data.correctOptionIndex is number && data.correctOptionIndex >= 0 && data.correctOptionIndex < data.options.size();
+    }
+
+    function isValidResult(data) {
+      return hasOnlyAllowedFields(['quizId', 'quizTitle', 'studentUid', 'studentName', 'score', 'totalQuestions', 'correctAnswers', 'completedAt', 'answers']) &&
+             data.quizId is string &&
+             data.studentUid is string &&
+             data.studentName is string &&
+             data.score is number &&
+             data.totalQuestions is number &&
+             data.correctAnswers is number &&
+             data.answers is list;
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'student';
+      allow update: if isAuthenticated() && (isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role && isValidUser(request.resource.data)));
+    }
+
+    match /quizzes/{quizId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() && isValidQuiz(request.resource.data);
+      allow update: if isAdmin() && isValidQuiz(request.resource.data);
+      allow delete: if isAdmin();
+
+      match /questions/{questionId} {
+        allow read: if isAuthenticated();
+        allow create: if isAdmin() && isValidQuestion(request.resource.data);
+        allow update: if isAdmin() && isValidQuestion(request.resource.data);
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /results/{resultId} {
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.studentUid == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.studentUid == request.auth.uid && isValidResult(request.resource.data);
+    }
+  }
+}

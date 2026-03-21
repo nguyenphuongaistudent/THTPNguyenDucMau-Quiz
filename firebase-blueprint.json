@@ -1,0 +1,73 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Thông tin người dùng và vai trò trong hệ thống.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "ID người dùng từ Firebase Auth" },
+        "email": { "type": "string", "format": "email", "description": "Email người dùng" },
+        "displayName": { "type": "string", "description": "Tên hiển thị" },
+        "role": { "type": "string", "enum": ["admin", "student"], "description": "Vai trò người dùng" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo tài khoản" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Quiz": {
+      "title": "Quiz",
+      "description": "Thông tin về bộ đề thi trắc nghiệm.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Tiêu đề bài thi" },
+        "description": { "type": "string", "description": "Mô tả bài thi" },
+        "duration": { "type": "integer", "description": "Thời gian làm bài (phút)" },
+        "createdBy": { "type": "string", "description": "UID của admin tạo đề" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo đề" },
+        "isActive": { "type": "boolean", "description": "Trạng thái đề thi" }
+      },
+      "required": ["title", "duration", "createdBy"]
+    },
+    "Question": {
+      "title": "Question",
+      "description": "Câu hỏi trong một bộ đề thi.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "description": "Nội dung câu hỏi" },
+        "options": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Danh sách các lựa chọn trả lời"
+        },
+        "correctOptionIndex": { "type": "integer", "description": "Vị trí của đáp án đúng (0-based)" },
+        "explanation": { "type": "string", "description": "Giải thích đáp án" }
+      },
+      "required": ["text", "options", "correctOptionIndex"]
+    },
+    "Result": {
+      "title": "Result",
+      "description": "Kết quả làm bài thi của học sinh.",
+      "type": "object",
+      "properties": {
+        "quizId": { "type": "string", "description": "ID của bài thi" },
+        "studentUid": { "type": "string", "description": "UID của học sinh" },
+        "studentName": { "type": "string", "description": "Tên học sinh" },
+        "score": { "type": "number", "description": "Điểm số đạt được" },
+        "totalQuestions": { "type": "integer", "description": "Tổng số câu hỏi" },
+        "correctAnswers": { "type": "integer", "description": "Số câu trả lời đúng" },
+        "completedAt": { "type": "string", "format": "date-time", "description": "Thời gian nộp bài" },
+        "answers": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Danh sách các đáp án học sinh đã chọn"
+        }
+      },
+      "required": ["quizId", "studentUid", "score", "completedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "Thông tin người dùng" },
+    "/quizzes/{quizId}": { "schema": "Quiz", "description": "Danh sách các bài thi" },
+    "/quizzes/{quizId}/questions/{questionId}": { "schema": "Question", "description": "Câu hỏi của từng bài thi" },
+    "/results/{resultId}": { "schema": "Result", "description": "Kết quả thi của học sinh" }
+  }
+}
