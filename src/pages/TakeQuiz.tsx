@@ -293,7 +293,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm' : 'Phần 2: Đúng/Sai'} - Câu {currentQuestionIndex + 1} / {questions.length}
               </p>
               <h3 
-                className="text-2xl font-medium text-stone-900 mb-10 leading-relaxed markdown-body"
+                className="text-2xl font-medium text-stone-900 mb-10 leading-relaxed markdown-body break-words"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.text) }}
               />
 
@@ -319,7 +319,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         {String.fromCharCode(65 + index)}
                       </div>
                       <span className={cn(
-                        "text-lg font-medium transition-colors",
+                        "text-lg font-medium transition-colors break-words flex-1 min-w-0",
                         answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
                       )}>
                         {option}
@@ -330,9 +330,9 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                   <div className="space-y-4">
                     {['a', 'b', 'c', 'd'].map((label, index) => (
                       <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-stone-100 bg-stone-50/30 gap-4">
-                        <div className="flex items-center gap-4 flex-grow">
-                          <span className="font-bold text-emerald-600 w-6">{label}.</span>
-                          <span className="text-stone-700 font-medium">{currentQuestion.options[index]}</span>
+                        <div className="flex items-center gap-4 flex-grow min-w-0">
+                          <span className="font-bold text-emerald-600 w-6 shrink-0">{label}.</span>
+                          <span className="text-stone-700 font-medium break-words">{currentQuestion.options[index]}</span>
                         </div>
                         <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-stone-200 shadow-sm">
                           <button

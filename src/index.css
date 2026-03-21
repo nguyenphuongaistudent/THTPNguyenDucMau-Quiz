@@ -24,6 +24,13 @@
   border-bottom-right-radius: 0.75rem;
 }
 
+.markdown-body {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
 .markdown-body table {
   border-collapse: collapse;
   width: 100%;
