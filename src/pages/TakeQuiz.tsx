@@ -240,8 +240,11 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
+  const mcQuestions = questions.map((q, i) => ({ ...q, originalIndex: i })).filter(q => q.type === 'multiple_choice');
+  const tfQuestions = questions.map((q, i) => ({ ...q, originalIndex: i })).filter(q => q.type === 'true_false');
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
       {/* Quiz Header */}
       <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border border-stone-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
@@ -259,137 +262,203 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
           </div>
         </div>
 
-        <div className={cn(
-          "flex items-center gap-2 px-4 py-2 rounded-xl font-mono font-bold text-lg",
-          timeLeft < 60 ? "bg-red-50 text-red-600 animate-pulse" : "bg-stone-50 text-stone-900"
-        )}>
-          <Clock className="w-5 h-5" />
-          {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+        <div className="flex items-center gap-4">
+          <div className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-xl font-mono font-bold text-lg",
+            timeLeft < 60 ? "bg-red-50 text-red-600 animate-pulse" : "bg-stone-50 text-stone-900"
+          )}>
+            <Clock className="w-5 h-5" />
+            {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+          </div>
+          
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="hidden sm:flex items-center gap-2 bg-emerald-600 text-white py-2 px-6 rounded-xl hover:bg-emerald-700 transition-all font-medium shadow-lg shadow-emerald-200 disabled:opacity-50"
+          >
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            Nộp bài
+          </button>
         </div>
       </div>
 
-      {/* Question Card */}
-      <div className="bg-white rounded-3xl border border-stone-200 p-8 sm:p-12 shadow-sm min-h-[400px] flex flex-col">
-        <div className="flex-grow">
-          <p className="text-sm font-bold text-stone-400 uppercase tracking-widest mb-4">Câu hỏi {currentQuestionIndex + 1} / {questions.length}</p>
-          <h3 className="text-2xl font-medium text-stone-900 mb-10 leading-relaxed">
-            {currentQuestion.text}
-          </h3>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Main Question Area */}
+        <div className="lg:col-span-3 space-y-8">
+          {/* Question Card */}
+          <div className="bg-white rounded-3xl border border-stone-200 p-8 sm:p-12 shadow-sm min-h-[400px] flex flex-col">
+            <div className="flex-grow">
+              <p className="text-sm font-bold text-stone-400 uppercase tracking-widest mb-4">
+                {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm' : 'Phần 2: Đúng/Sai'} - Câu {currentQuestionIndex + 1} / {questions.length}
+              </p>
+              <h3 className="text-2xl font-medium text-stone-900 mb-10 leading-relaxed">
+                {currentQuestion.text}
+              </h3>
 
-          <div className="grid grid-cols-1 gap-4">
-            {currentQuestion.type === 'multiple_choice' ? (
-              currentQuestion.options.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleAnswerSelect(index)}
-                  className={cn(
-                    "flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all group",
-                    answers[currentQuestionIndex] === index 
-                      ? "border-emerald-500 bg-emerald-50/30 ring-4 ring-emerald-500/5" 
-                      : "border-stone-100 hover:border-stone-200 hover:bg-stone-50"
-                  )}
-                >
-                  <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center font-bold transition-colors",
-                    answers[currentQuestionIndex] === index 
-                      ? "bg-emerald-500 text-white" 
-                      : "bg-stone-100 text-stone-400 group-hover:bg-stone-200"
-                  )}>
-                    {String.fromCharCode(65 + index)}
+              <div className="grid grid-cols-1 gap-4">
+                {currentQuestion.type === 'multiple_choice' ? (
+                  currentQuestion.options.map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleAnswerSelect(index)}
+                      className={cn(
+                        "flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all group",
+                        answers[currentQuestionIndex] === index 
+                          ? "border-emerald-500 bg-emerald-50/30 ring-4 ring-emerald-500/5" 
+                          : "border-stone-100 hover:border-stone-200 hover:bg-stone-50"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center font-bold transition-colors",
+                        answers[currentQuestionIndex] === index 
+                          ? "bg-emerald-500 text-white" 
+                          : "bg-stone-100 text-stone-400 group-hover:bg-stone-200"
+                      )}>
+                        {String.fromCharCode(65 + index)}
+                      </div>
+                      <span className={cn(
+                        "text-lg font-medium transition-colors",
+                        answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
+                      )}>
+                        {option}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="space-y-4">
+                    {['a', 'b', 'c', 'd'].map((label, index) => (
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-stone-100 bg-stone-50/30 gap-4">
+                        <div className="flex items-center gap-4 flex-grow">
+                          <span className="font-bold text-emerald-600 w-6">{label}.</span>
+                          <span className="text-stone-700 font-medium">{currentQuestion.options[index]}</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-stone-200 shadow-sm">
+                          <button
+                            onClick={() => handleTFAnswerSelect(index, true)}
+                            className={cn(
+                              "px-6 py-2 rounded-lg text-sm font-bold transition-all",
+                              (answers[currentQuestionIndex] as boolean[])?.[index] === true 
+                                ? "bg-emerald-600 text-white shadow-md" 
+                                : "text-stone-400 hover:text-stone-600 hover:bg-stone-50"
+                            )}
+                          >
+                            Đúng
+                          </button>
+                          <button
+                            onClick={() => handleTFAnswerSelect(index, false)}
+                            className={cn(
+                              "px-6 py-2 rounded-lg text-sm font-bold transition-all",
+                              (answers[currentQuestionIndex] as boolean[])?.[index] === false 
+                                ? "bg-red-600 text-white shadow-md" 
+                                : "text-stone-400 hover:text-stone-600 hover:bg-stone-50"
+                            )}
+                          >
+                            Sai
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <span className={cn(
-                    "text-lg font-medium transition-colors",
-                    answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
-                  )}>
-                    {option}
-                  </span>
-                </button>
-              ))
-            ) : (
-              <div className="space-y-4">
-                {['a', 'b', 'c', 'd'].map((label, index) => (
-                  <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-stone-100 bg-stone-50/30 gap-4">
-                    <div className="flex items-center gap-4 flex-grow">
-                      <span className="font-bold text-emerald-600 w-6">{label}.</span>
-                      <span className="text-stone-700 font-medium">{currentQuestion.options[index]}</span>
-                    </div>
-                    <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-stone-200 shadow-sm">
-                      <button
-                        onClick={() => handleTFAnswerSelect(index, true)}
-                        className={cn(
-                          "px-6 py-2 rounded-lg text-sm font-bold transition-all",
-                          (answers[currentQuestionIndex] as boolean[])?.[index] === true 
-                            ? "bg-emerald-600 text-white shadow-md" 
-                            : "text-stone-400 hover:text-stone-600 hover:bg-stone-50"
-                        )}
-                      >
-                        Đúng
-                      </button>
-                      <button
-                        onClick={() => handleTFAnswerSelect(index, false)}
-                        className={cn(
-                          "px-6 py-2 rounded-lg text-sm font-bold transition-all",
-                          (answers[currentQuestionIndex] as boolean[])?.[index] === false 
-                            ? "bg-red-600 text-white shadow-md" 
-                            : "text-stone-400 hover:text-stone-600 hover:bg-stone-50"
-                        )}
-                      >
-                        Sai
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                )}
               </div>
-            )}
+            </div>
+
+            <div className="flex items-center justify-between mt-12 pt-8 border-t border-stone-50">
+              <button
+                onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                disabled={currentQuestionIndex === 0}
+                className="flex items-center gap-2 px-6 py-3 text-stone-500 font-medium hover:text-stone-900 disabled:opacity-30 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" /> Trước đó
+              </button>
+
+              {currentQuestionIndex === questions.length - 1 ? (
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="flex items-center gap-2 bg-emerald-600 text-white py-3 px-10 rounded-2xl hover:bg-emerald-700 transition-all font-medium shadow-lg shadow-emerald-200 disabled:opacity-50"
+                >
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  Nộp bài
+                </button>
+              ) : (
+                <button
+                  onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
+                  className="flex items-center gap-2 bg-stone-900 text-white py-3 px-10 rounded-2xl hover:bg-stone-800 transition-all font-medium shadow-lg shadow-stone-200"
+                >
+                  Tiếp theo <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-12 pt-8 border-t border-stone-50">
-          <button
-            onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-            disabled={currentQuestionIndex === 0}
-            className="flex items-center gap-2 px-6 py-3 text-stone-500 font-medium hover:text-stone-900 disabled:opacity-30 transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" /> Trước đó
-          </button>
+        {/* Question Navigator Sidebar */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl border border-stone-200 p-6 shadow-sm sticky top-40">
+            <div className="mb-6">
+              <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Danh sách câu hỏi</p>
+            </div>
 
-          {currentQuestionIndex === questions.length - 1 ? (
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || answers.includes(-1)}
-              className="flex items-center gap-2 bg-emerald-600 text-white py-3 px-10 rounded-2xl hover:bg-emerald-700 transition-all font-medium shadow-lg shadow-emerald-200 disabled:opacity-50"
-            >
-              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              Nộp bài
-            </button>
-          ) : (
-            <button
-              onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
-              className="flex items-center gap-2 bg-stone-900 text-white py-3 px-10 rounded-2xl hover:bg-stone-800 transition-all font-medium shadow-lg shadow-stone-200"
-            >
-              Tiếp theo <ChevronRight className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Question Navigator */}
-      <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
-        <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4">Danh sách câu hỏi</p>
-        <div className="flex flex-wrap gap-2">
-          {questions.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentQuestionIndex(index)}
-              className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all",
-                currentQuestionIndex === index ? "ring-2 ring-stone-900 ring-offset-2" : "",
-                answers[index] !== -1 ? "bg-emerald-100 text-emerald-700" : "bg-stone-100 text-stone-400"
+            <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {mcQuestions.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold text-stone-400 uppercase mb-3 px-1">Phần 1: Trắc nghiệm</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {mcQuestions.map((q) => (
+                      <button
+                        key={q.originalIndex}
+                        onClick={() => setCurrentQuestionIndex(q.originalIndex)}
+                        className={cn(
+                          "w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold transition-all",
+                          currentQuestionIndex === q.originalIndex 
+                            ? "bg-stone-900 text-white shadow-md scale-110 z-10" 
+                            : answers[q.originalIndex] !== -1 
+                              ? "bg-emerald-500 text-white shadow-sm" 
+                              : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                        )}
+                      >
+                        {q.originalIndex + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
-            >
-              {index + 1}
-            </button>
-          ))}
+
+              {tfQuestions.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold text-stone-400 uppercase mb-3 px-1">Phần 2: Đúng/Sai</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {tfQuestions.map((q) => (
+                      <button
+                        key={q.originalIndex}
+                        onClick={() => setCurrentQuestionIndex(q.originalIndex)}
+                        className={cn(
+                          "w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold transition-all",
+                          currentQuestionIndex === q.originalIndex 
+                            ? "bg-stone-900 text-white shadow-md scale-110 z-10" 
+                            : "bg-emerald-500 text-white shadow-sm"
+                        )}
+                      >
+                        {q.originalIndex + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-stone-100 grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                <span className="text-[10px] text-stone-500 font-medium">Đã chọn</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-stone-100" />
+                <span className="text-[10px] text-stone-500 font-medium">Chưa chọn</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
