@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import { collection, getDocs, addDoc, serverTimestamp, query, where, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, Question, User, Result } from '../types';
@@ -291,9 +292,10 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               <p className="text-sm font-bold text-stone-400 uppercase tracking-widest mb-4">
                 {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm' : 'Phần 2: Đúng/Sai'} - Câu {currentQuestionIndex + 1} / {questions.length}
               </p>
-              <h3 className="text-2xl font-medium text-stone-900 mb-10 leading-relaxed">
-                {currentQuestion.text}
-              </h3>
+              <h3 
+                className="text-2xl font-medium text-stone-900 mb-10 leading-relaxed markdown-body"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.text) }}
+              />
 
               <div className="grid grid-cols-1 gap-4">
                 {currentQuestion.type === 'multiple_choice' ? (

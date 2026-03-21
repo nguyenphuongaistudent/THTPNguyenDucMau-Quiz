@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactQuill from 'react-quill-new';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, writeBatch, deleteField } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, Question, User, QuestionType } from '../types';
@@ -649,13 +650,23 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                           </div>
                           <div className="flex-grow-[2] space-y-2">
                             <label className="text-xs font-bold text-stone-400 uppercase">Nội dung câu hỏi {qIndex + 1}</label>
-                            <input
-                              type="text"
-                              value={q.text || ''}
-                              onChange={(e) => updateQuestion(qIndex, 'text', e.target.value)}
-                              className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-500 transition-all"
-                              placeholder="Nhập nội dung câu hỏi..."
-                            />
+                            <div className="bg-white rounded-xl overflow-hidden">
+                              <ReactQuill
+                                theme="snow"
+                                value={q.text || ''}
+                                onChange={(val) => updateQuestion(qIndex, 'text', val)}
+                                modules={{
+                                  toolbar: [
+                                    [{ 'header': [1, 2, false] }],
+                                    ['bold', 'italic', 'underline', 'strike'],
+                                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                                    ['link', 'image', 'video'],
+                                    ['clean']
+                                  ],
+                                }}
+                                placeholder="Nhập nội dung câu hỏi (có thể chèn bảng, hình ảnh)..."
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -733,12 +744,22 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-stone-400 uppercase">Giải thích (không bắt buộc)</label>
-                          <textarea
-                            value={q.explanation || ''}
-                            onChange={(e) => updateQuestion(qIndex, 'explanation', e.target.value)}
-                            className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-500 transition-all min-h-[60px]"
-                            placeholder="Giải thích tại sao đáp án này đúng..."
-                          />
+                          <div className="bg-white rounded-xl overflow-hidden">
+                            <ReactQuill
+                              theme="snow"
+                              value={q.explanation || ''}
+                              onChange={(val) => updateQuestion(qIndex, 'explanation', val)}
+                              modules={{
+                                toolbar: [
+                                  ['bold', 'italic', 'underline'],
+                                  [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                                  ['link', 'image'],
+                                  ['clean']
+                                ],
+                              }}
+                              placeholder="Giải thích tại sao đáp án này đúng..."
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>

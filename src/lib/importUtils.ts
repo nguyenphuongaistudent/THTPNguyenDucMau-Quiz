@@ -31,22 +31,17 @@ export const parseJSON = (content: string): ImportedQuiz => {
 
 export const parseWord = async (arrayBuffer: ArrayBuffer): Promise<ImportedQuiz> => {
   try {
-    const result = await mammoth.extractRawText({ arrayBuffer });
-    const text = result.value;
+    const result = await mammoth.convertToHtml({ arrayBuffer });
+    const html = result.value;
     
-    // Simple parsing logic for Word text
-    // We expect a format like:
-    // Title: My Quiz
-    // Subject: Math
-    // Topic: regular
-    // Duration: 45
-    // ---
-    // 1. Question text?
-    // A. Opt 1
-    // B. Opt 2
-    // C. Opt 3
-    // D. Opt 4
-    // Answer: A
+    // Simple parsing logic for HTML from Word
+    // We'll strip some tags but keep basic formatting
+    // This is a bit complex because mammoth output is HTML
+    // For now, let's stick to a simpler text-based parsing but allow HTML in the content
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    const text = tempDiv.innerText || tempDiv.textContent || '';
     
     const lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
     

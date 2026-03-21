@@ -1,1 +1,48 @@
 @import "tailwindcss";
+@import "react-quill-new/dist/quill.snow.css";
+
+.ql-editor {
+  min-height: 100px;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.ql-container.ql-snow {
+  border-radius: 0.75rem;
+  border-color: #e5e7eb;
+}
+
+.ql-toolbar.ql-snow {
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+  border-color: #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.ql-container.ql-snow {
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.markdown-body table th, .markdown-body table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.markdown-body table th {
+  background-color: #f9fafb;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
