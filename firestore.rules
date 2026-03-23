@@ -101,25 +101,27 @@ service cloud.firestore {
     }
 
     function isValidQuiz(data) {
-      return hasOnlyAllowedFields(['title', 'description', 'subject', 'topic', 'duration', 'maxAttempts', 'createdBy', 'createdAt', 'isActive', 'updatedAt']) &&
+      return hasOnlyAllowedFields(['title', 'description', 'subject', 'topic', 'duration', 'maxAttempts', 'createdBy', 'createdAt', 'isActive', 'updatedAt', 'allowedRoles']) &&
              (!('title' in data) || (data.title is string && data.title.size() > 0 && data.title.size() <= 200)) &&
-             (!('subject' in data) || (data.subject is string && data.subject.size() > 0)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+             (!('subject' in data) || (data.subject is string && data.subject.size() > 0 && data.subject.size() <= 100)) &&
              (!('topic' in data) || (data.topic in ['regular', 'periodic', 'graduation'])) &&
-             (!('duration' in data) || (data.duration is number && data.duration > 0)) &&
-             (!('maxAttempts' in data) || (data.maxAttempts is number && data.maxAttempts >= 0)) &&
+             (!('duration' in data) || (data.duration is number && data.duration > 0 && data.duration <= 1440)) &&
+             (!('maxAttempts' in data) || (data.maxAttempts is number && data.maxAttempts >= 0 && data.maxAttempts <= 100)) &&
              (!('createdBy' in data) || (data.createdBy is string)) &&
-             (!('isActive' in data) || (data.isActive is bool));
+             (!('isActive' in data) || (data.isActive is bool)) &&
+             (!('allowedRoles' in data) || (data.allowedRoles is list && data.allowedRoles.size() >= 1 && data.allowedRoles.size() <= 5));
     }
 
     function isValidQuestion(data) {
       return hasOnlyAllowedFields(['type', 'text', 'options', 'correctOptionIndex', 'correctAnswers', 'explanation', 'order']) &&
              data.type in ['multiple_choice', 'true_false'] &&
-             data.text is string && data.text.size() > 0 && data.text.size() <= 500000 &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 10000 &&
              data.options is list && data.options.size() >= 2 && data.options.size() <= 10 &&
              (data.type == 'multiple_choice' ? 
                (data.correctOptionIndex is number && data.correctOptionIndex >= 0 && data.correctOptionIndex < data.options.size()) : 
                (data.correctAnswers is list && data.correctAnswers.size() == 4)) &&
-             (data.explanation is string && data.explanation.size() <= 500000) &&
+             (!('explanation' in data) || (data.explanation is string && data.explanation.size() <= 10000)) &&
              (data.order is number);
     }
 
@@ -155,8 +157,11 @@ service cloud.firestore {
 
     match /quizzes/{quizId} {
       allow read: if isApproved();
-      allow create: if isTeacher() && isValidQuiz(request.resource.data);
-      allow update: if isTeacher() && isValidQuiz(request.resource.data);
+      allow create: if isTeacher() && isValidQuiz(request.resource.data) && 
+                      request.resource.data.createdBy == request.auth.uid;
+      allow update: if isTeacher() && isValidQuiz(request.resource.data) && 
+                      request.resource.data.createdBy == resource.data.createdBy &&
+                      request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isTeacher();
 
       match /questions/{questionId} {

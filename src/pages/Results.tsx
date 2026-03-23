@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Result, User } from '../types';
-import { Trophy, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, ChevronRight, BookOpen, User as UserIcon } from 'lucide-react';
+import { Trophy, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, ChevronRight, BookOpen, User as UserIcon, School } from 'lucide-react';
 import { formatDate, cn } from '../lib/utils';
 
 interface ResultsProps {
@@ -14,7 +14,7 @@ export default function Results({ user }: ResultsProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = user.role === 'admin' 
+    const q = (user.role === 'admin' || user.role === 'teacher')
       ? query(collection(db, 'results'), orderBy('completedAt', 'desc'))
       : query(collection(db, 'results'), where('studentUid', '==', user.uid), orderBy('completedAt', 'desc'));
 
@@ -98,11 +98,25 @@ export default function Results({ user }: ResultsProps) {
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     {result.correctAnswers} / {result.totalQuestions} câu đúng
                   </span>
-                  {user.role === 'admin' && (
-                    <span className="flex items-center gap-1.5 font-medium text-stone-700">
-                      <UserIcon className="w-4 h-4" />
-                      {result.studentName}
-                    </span>
+                  {(user.role === 'admin' || user.role === 'teacher') && (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <span className="flex items-center gap-1.5 font-medium text-stone-700">
+                        <UserIcon className="w-4 h-4" />
+                        {result.studentName}
+                      </span>
+                      {result.studentClass && (
+                        <span className="flex items-center gap-1.5 text-stone-500">
+                          <BookOpen className="w-3.5 h-3.5" />
+                          Lớp: {result.studentClass}
+                        </span>
+                      )}
+                      {result.studentSchool && (
+                        <span className="flex items-center gap-1.5 text-stone-500">
+                          <School className="w-3.5 h-3.5" />
+                          Trường: {result.studentSchool}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

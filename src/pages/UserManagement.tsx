@@ -3,8 +3,9 @@ import { collection, onSnapshot, query, orderBy, setDoc, doc, deleteDoc, serverT
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { User, UserRole } from '../types';
 import * as XLSX from 'xlsx';
-import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save, FileDown, FileUp } from 'lucide-react';
+import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save, FileDown, FileUp, Key, Download } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { sendPasswordReset } from '../firebase';
 
 interface UserManagementProps {
   currentUser: User;
@@ -80,14 +81,14 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
 
         let count = 0;
         for (const row of data) {
-          const email = row.Email || row.email;
+          const email = row.Email || row.email || row['Email'] || row['email'];
           if (email) {
             await addDoc(collection(db, 'users'), {
               email: email,
-              displayName: row.DisplayName || row.name || '',
-              school: row.School || row.school || '',
-              class: row.Class || row.class || '',
-              role: (row.Role || row.role || 'student').toLowerCase(),
+              displayName: row.DisplayName || row.name || row['Họ và tên'] || '',
+              school: row.School || row.school || row['Trường'] || '',
+              class: row.Class || row.class || row['Lớp'] || '',
+              role: (row.Role || row.role || row['Vai trò'] || 'student').toLowerCase(),
               isApproved: true,
               createdAt: serverTimestamp(),
               uid: `pre_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -104,6 +105,47 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     } finally {
       setImporting(false);
       e.target.value = '';
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const template = [
+      {
+        'Email': 'student1@example.com',
+        'Họ và tên': 'Nguyễn Văn A',
+        'Trường': 'THPT Chuyên Hà Nội',
+        'Lớp': '12A1',
+        'Vai trò': 'student'
+      },
+      {
+        'Email': 'teacher1@example.com',
+        'Họ và tên': 'Trần Thị B',
+        'Trường': 'THPT Chuyên Hà Nội',
+        'Lớp': 'Toán',
+        'Vai trò': 'teacher'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "mau_import_thanh_vien.xlsx");
+  };
+
+  const handleResetPassword = async (email: string) => {
+    if (currentUser.role !== 'admin') {
+      alert('Chỉ quản trị viên mới có quyền reset mật khẩu.');
+      return;
+    }
+    
+    if (window.confirm(`Gửi email khôi phục mật khẩu đến ${email}?`)) {
+      try {
+        await sendPasswordReset(email);
+        alert('Đã gửi email khôi phục mật khẩu thành công.');
+      } catch (error) {
+        console.error('Error resetting password:', error);
+        alert('Có lỗi xảy ra khi gửi email khôi phục mật khẩu.');
+      }
     }
   };
 
@@ -201,6 +243,13 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={handleDownloadTemplate}
+            className="flex items-center justify-center gap-2 bg-white border border-stone-200 text-stone-700 py-3 px-6 rounded-xl hover:bg-stone-50 transition-all font-medium"
+          >
+            <Download className="w-5 h-5" />
+            Tải mẫu Excel
+          </button>
           <label className="flex items-center justify-center gap-2 bg-white border border-stone-200 text-stone-700 py-3 px-6 rounded-xl hover:bg-stone-50 transition-all font-medium cursor-pointer">
             {importing ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileUp className="w-5 h-5" />}
             Nhập từ Excel
@@ -308,6 +357,15 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {currentUser.role === 'admin' && !user.uid.startsWith('pre_') && (
+                          <button
+                            onClick={() => handleResetPassword(user.email)}
+                            title="Reset mật khẩu"
+                            className="p-2 text-stone-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                          >
+                            <Key className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEditUser(user)}
                           className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"

@@ -164,6 +164,8 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         topic: quiz?.topic,
         studentUid: user.uid,
         studentName: user.displayName,
+        studentSchool: user.school || '',
+        studentClass: user.class || '',
         score: Number(totalScore.toFixed(2)),
         totalQuestions: questions.length,
         correctAnswers: correctCount,
@@ -378,29 +380,27 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                           <span className="font-bold text-emerald-600 w-6 shrink-0">{label}.</span>
                           <span className="text-stone-700 font-medium">{currentQuestion.options[index]}</span>
                         </div>
-                        <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-stone-200 shadow-sm">
-                          <button
-                            onClick={() => handleTFAnswerSelect(index, true)}
-                            className={cn(
-                              "px-6 py-2 rounded-lg text-sm font-bold transition-all",
-                              (answers[currentQuestionIndex] as boolean[])?.[index] === true 
-                                ? "bg-emerald-600 text-white shadow-md" 
-                                : "text-stone-400 hover:text-stone-600 hover:bg-stone-50"
-                            )}
-                          >
-                            Đúng
-                          </button>
-                          <button
-                            onClick={() => handleTFAnswerSelect(index, false)}
-                            className={cn(
-                              "px-6 py-2 rounded-lg text-sm font-bold transition-all",
-                              (answers[currentQuestionIndex] as boolean[])?.[index] === false 
-                                ? "bg-red-600 text-white shadow-md" 
-                                : "text-stone-400 hover:text-stone-600 hover:bg-stone-50"
-                            )}
-                          >
-                            Sai
-                          </button>
+                        <div className="flex items-center gap-6 bg-white px-6 py-2 rounded-xl border border-stone-200 shadow-sm">
+                          <label className="flex items-center gap-2 cursor-pointer group">
+                            <input
+                              type="radio"
+                              name={`q-${currentQuestionIndex}-o-${index}`}
+                              checked={(answers[currentQuestionIndex] as boolean[])?.[index] === true}
+                              onChange={() => handleTFAnswerSelect(index, true)}
+                              className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 border-stone-300"
+                            />
+                            <span className={cn("text-sm font-bold transition-colors", (answers[currentQuestionIndex] as boolean[])?.[index] === true ? "text-emerald-600" : "text-stone-400 group-hover:text-stone-600")}>Đúng</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer group">
+                            <input
+                              type="radio"
+                              name={`q-${currentQuestionIndex}-o-${index}`}
+                              checked={(answers[currentQuestionIndex] as boolean[])?.[index] === false}
+                              onChange={() => handleTFAnswerSelect(index, false)}
+                              className="w-5 h-5 text-red-600 focus:ring-red-500 border-stone-300"
+                            />
+                            <span className={cn("text-sm font-bold transition-colors", (answers[currentQuestionIndex] as boolean[])?.[index] === false ? "text-red-600" : "text-stone-400 group-hover:text-stone-600")}>Sai</span>
+                          </label>
                         </div>
                       </div>
                     ))}

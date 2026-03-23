@@ -51,6 +51,8 @@ export interface Result {
   topic: QuizTopic;
   studentUid: string;
   studentName: string;
+  studentSchool?: string;
+  studentClass?: string;
   score: number;
   totalQuestions: number;
   correctAnswers: number;

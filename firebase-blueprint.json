@@ -26,9 +26,15 @@
         "subject": { "type": "string", "description": "Môn học (Toán, Lý, Hóa...)" },
         "topic": { "type": "string", "enum": ["regular", "periodic", "graduation"], "description": "Chủ đề bài thi" },
         "duration": { "type": "integer", "description": "Thời gian làm bài (phút)" },
+        "maxAttempts": { "type": "integer", "description": "Số lượt thi tối đa" },
         "createdBy": { "type": "string", "description": "UID của admin tạo đề" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo đề" },
-        "isActive": { "type": "boolean", "description": "Trạng thái đề thi" }
+        "isActive": { "type": "boolean", "description": "Trạng thái đề thi" },
+        "allowedRoles": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["student", "guest"] },
+          "description": "Các vai trò được phép tham gia thi"
+        }
       },
       "required": ["title", "duration", "createdBy"]
     },

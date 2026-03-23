@@ -790,33 +790,35 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                                     placeholder={`Nội dung ý ${label}...`}
                                   />
                                 </div>
-                                <div className="flex items-center gap-4 bg-stone-100 p-1 rounded-lg">
-                                  <button
-                                    onClick={() => {
-                                      const newCorrect = [...(q.correctAnswers || [true, true, true, true])];
-                                      newCorrect[oIndex] = true;
-                                      updateQuestion(qIndex, 'correctAnswers', newCorrect);
-                                    }}
-                                    className={cn(
-                                      "px-4 py-1.5 rounded-md text-xs font-bold transition-all",
-                                      q.correctAnswers?.[oIndex] === true ? "bg-emerald-600 text-white shadow-sm" : "text-stone-500 hover:text-stone-700"
-                                    )}
-                                  >
-                                    Đúng
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const newCorrect = [...(q.correctAnswers || [true, true, true, true])];
-                                      newCorrect[oIndex] = false;
-                                      updateQuestion(qIndex, 'correctAnswers', newCorrect);
-                                    }}
-                                    className={cn(
-                                      "px-4 py-1.5 rounded-md text-xs font-bold transition-all",
-                                      q.correctAnswers?.[oIndex] === false ? "bg-red-600 text-white shadow-sm" : "text-stone-500 hover:text-stone-700"
-                                    )}
-                                  >
-                                    Sai
-                                  </button>
+                                <div className="flex items-center gap-6 bg-stone-100 px-4 py-2 rounded-lg">
+                                  <label className="flex items-center gap-2 cursor-pointer group">
+                                    <input
+                                      type="radio"
+                                      name={`q-${qIndex}-o-${oIndex}`}
+                                      checked={q.correctAnswers?.[oIndex] === true}
+                                      onChange={() => {
+                                        const newCorrect = [...(q.correctAnswers || [true, true, true, true])];
+                                        newCorrect[oIndex] = true;
+                                        updateQuestion(qIndex, 'correctAnswers', newCorrect);
+                                      }}
+                                      className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-stone-300"
+                                    />
+                                    <span className={cn("text-xs font-bold transition-colors", q.correctAnswers?.[oIndex] === true ? "text-emerald-600" : "text-stone-500 group-hover:text-stone-700")}>Đúng</span>
+                                  </label>
+                                  <label className="flex items-center gap-2 cursor-pointer group">
+                                    <input
+                                      type="radio"
+                                      name={`q-${qIndex}-o-${oIndex}`}
+                                      checked={q.correctAnswers?.[oIndex] === false}
+                                      onChange={() => {
+                                        const newCorrect = [...(q.correctAnswers || [true, true, true, true])];
+                                        newCorrect[oIndex] = false;
+                                        updateQuestion(qIndex, 'correctAnswers', newCorrect);
+                                      }}
+                                      className="w-4 h-4 text-red-600 focus:ring-red-500 border-stone-300"
+                                    />
+                                    <span className={cn("text-xs font-bold transition-colors", q.correctAnswers?.[oIndex] === false ? "text-red-600" : "text-stone-500 group-hover:text-stone-700")}>Sai</span>
+                                  </label>
                                 </div>
                               </div>
                             ))}
