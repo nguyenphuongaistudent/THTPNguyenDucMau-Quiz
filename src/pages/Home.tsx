@@ -32,7 +32,6 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
   useEffect(() => {
     const q = query(
       collection(db, 'quizzes'),
-      where('isActive', '==', true),
       orderBy('createdAt', 'desc')
     );
 
@@ -76,6 +75,15 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
   const isAttemptLimitReached = (quiz: Quiz) => {
     if (!quiz.maxAttempts || quiz.maxAttempts === 0) return false;
     return getAttemptCount(quiz.id) >= quiz.maxAttempts;
+  };
+
+  const isRoleAllowed = (quiz: Quiz) => {
+    if (!quiz.allowedRoles || quiz.allowedRoles.length === 0) return true;
+    return quiz.allowedRoles.includes(user.role);
+  };
+
+  const canTakeQuiz = (quiz: Quiz) => {
+    return quiz.isActive && isRoleAllowed(quiz) && !isAttemptLimitReached(quiz);
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -186,17 +194,20 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
           {filteredQuizzes.map((quiz) => {
             const attempts = getAttemptCount(quiz.id);
             const limitReached = isAttemptLimitReached(quiz);
+            const roleAllowed = isRoleAllowed(quiz);
+            const isActive = quiz.isActive;
+            const playable = canTakeQuiz(quiz);
             
             return (
               <div 
                 key={quiz.id}
                 className={cn(
                   "group bg-white rounded-2xl border border-stone-200 p-6 transition-all flex flex-col",
-                  limitReached 
-                    ? "opacity-75 cursor-not-allowed" 
+                  !playable 
+                    ? "opacity-75 cursor-not-allowed grayscale-[0.5]" 
                     : "hover:shadow-xl hover:shadow-stone-200/50 hover:-translate-y-1 cursor-pointer"
                 )}
-                onClick={() => !limitReached && onTakeQuiz(quiz.id)}
+                onClick={() => playable && onTakeQuiz(quiz.id)}
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex flex-col gap-1">
@@ -208,6 +219,11 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                     </span>
                   </div>
                   <div className="flex flex-col items-end gap-2">
+                    {!isActive && (
+                      <div className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-600 uppercase tracking-wider flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> Chưa công khai
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5 px-2.5 py-1 bg-stone-100 rounded-full text-xs font-medium text-stone-600">
                       <Clock className="w-3 h-3" />
                       {formatDuration(quiz.duration)}
@@ -234,7 +250,15 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                 
                 <div className="flex items-center justify-between pt-4 border-t border-stone-50">
                   <span className="text-xs text-stone-400">Cập nhật: {formatDate(quiz.createdAt)}</span>
-                  {limitReached ? (
+                  {!isActive ? (
+                    <div className="flex items-center gap-1 text-amber-600 font-medium text-sm">
+                      <AlertCircle className="w-4 h-4" /> Sắp ra mắt
+                    </div>
+                  ) : !roleAllowed ? (
+                    <div className="flex items-center gap-1 text-stone-400 font-medium text-sm">
+                      <XCircle className="w-4 h-4" /> Không dành cho {user.role === 'student' ? 'Học sinh' : 'Khách'}
+                    </div>
+                  ) : limitReached ? (
                     <div className="flex items-center gap-1 text-red-500 font-medium text-sm">
                       <AlertCircle className="w-4 h-4" /> Hết lượt
                     </div>

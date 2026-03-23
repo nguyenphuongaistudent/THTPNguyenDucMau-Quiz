@@ -52,13 +52,57 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
           setTimeLeft(foundQuiz.data().duration * 60);
           
           const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', quizId, 'questions'), orderBy('order')));
-          const questionList = questionsSnapshot.docs.map(doc => ({
+          let questionList = questionsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
           })) as Question[];
-          setQuestions(questionList);
-          setAnswers(new Array(questionList.length).fill(-1).map((_, i) => 
-            questionList[i].type === 'true_false' ? [true, true, true, true] : -1
+
+          // Helper to shuffle array
+          const shuffleArray = <T,>(array: T[]): T[] => {
+            const newArr = [...array];
+            for (let i = newArr.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+            }
+            return newArr;
+          };
+
+          // Shuffle options within each question
+          questionList = questionList.map(q => {
+            if (q.type === 'multiple_choice' && q.options) {
+              const optionsWithCorrect = q.options.map((opt, idx) => ({
+                text: opt,
+                isCorrect: idx === q.correctOptionIndex
+              }));
+              const shuffledOptions = shuffleArray(optionsWithCorrect);
+              return {
+                ...q,
+                options: shuffledOptions.map(o => o.text),
+                correctOptionIndex: shuffledOptions.findIndex(o => o.isCorrect)
+              };
+            } else if (q.type === 'true_false' && q.options && q.correctAnswers) {
+              const subStatementsWithCorrect = q.options.map((opt, idx) => ({
+                text: opt,
+                isCorrect: q.correctAnswers![idx]
+              }));
+              const shuffledSubStatements = shuffleArray(subStatementsWithCorrect);
+              return {
+                ...q,
+                options: shuffledSubStatements.map(s => s.text),
+                correctAnswers: shuffledSubStatements.map(s => s.isCorrect)
+              };
+            }
+            return q;
+          });
+
+          // Shuffle questions within their parts (MC first, then TF)
+          const mcQuestions = shuffleArray(questionList.filter(q => q.type === 'multiple_choice'));
+          const tfQuestions = shuffleArray(questionList.filter(q => q.type === 'true_false'));
+          const shuffledQuestions = [...mcQuestions, ...tfQuestions];
+
+          setQuestions(shuffledQuestions);
+          setAnswers(new Array(shuffledQuestions.length).fill(-1).map((_, i) => 
+            shuffledQuestions[i].type === 'true_false' ? [true, true, true, true] : -1
           ));
         }
       } catch (error) {

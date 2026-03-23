@@ -27,6 +27,7 @@ export interface Quiz {
   createdBy: string;
   createdAt: Timestamp;
   isActive: boolean;
+  allowedRoles?: UserRole[];
 }
 
 export type QuestionType = 'multiple_choice' | 'true_false';
