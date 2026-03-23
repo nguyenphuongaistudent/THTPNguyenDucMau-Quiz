@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import ReactQuill from 'react-quill-new';
-import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, writeBatch, deleteField } from 'firebase/firestore';
+import * as XLSX from 'xlsx';
+import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, writeBatch, deleteField, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, Question, User, QuestionType } from '../types';
-import { Plus, Trash2, Edit, ChevronRight, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Save, X, List, PlusCircle, Upload, Download } from 'lucide-react';
+import { Plus, Trash2, Edit, ChevronRight, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Save, X, List, PlusCircle, Upload, Download, FileSpreadsheet } from 'lucide-react';
 import { formatDuration, formatDate, cn } from '../lib/utils';
 import ImportQuizModal from '../components/ImportQuizModal';
 import { ImportedQuiz, downloadFile } from '../lib/importUtils';
@@ -138,6 +139,52 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     } catch (error) {
       console.error('Error exporting quiz:', error);
       alert('Có lỗi xảy ra khi xuất bài thi.');
+    }
+  };
+
+  const handleExportResults = async (quiz: Quiz) => {
+    try {
+      setSaving(true);
+      const resultsSnapshot = await getDocs(query(collection(db, 'results'), where('quizId', '==', quiz.id), orderBy('completedAt', 'desc')));
+      const results = resultsSnapshot.docs.map(doc => doc.data());
+
+      if (results.length === 0) {
+        alert('Chưa có kết quả nào cho bài thi này.');
+        return;
+      }
+
+      // Fetch user details for school and class
+      const userUids = Array.from(new Set(results.map(r => r.studentUid)));
+      const usersData: Record<string, any> = {};
+      
+      // Batch fetch users (Firestore doesn't support 'in' with more than 30, but let's assume it's fine for now or do it in chunks)
+      for (let i = 0; i < userUids.length; i += 30) {
+        const chunk = userUids.slice(i, i + 30);
+        const usersSnapshot = await getDocs(query(collection(db, 'users'), where('uid', 'in', chunk)));
+        usersSnapshot.docs.forEach(doc => {
+          usersData[doc.id] = doc.data();
+        });
+      }
+
+      const exportData = results.map((r: any) => ({
+        'Họ và tên': r.studentName,
+        'Email': usersData[r.studentUid]?.email || '',
+        'Trường': usersData[r.studentUid]?.school || '',
+        'Lớp': usersData[r.studentUid]?.class || '',
+        'Điểm số': r.score.toFixed(2),
+        'Số câu đúng': `${r.correctAnswers}/${r.totalQuestions}`,
+        'Thời gian hoàn thành': r.completedAt?.toDate().toLocaleString('vi-VN') || ''
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Kết quả");
+      XLSX.writeFile(wb, `Ket_qua_${quiz.title.replace(/\s+/g, '_')}.xlsx`);
+    } catch (error) {
+      console.error('Error exporting results:', error);
+      alert('Có lỗi xảy ra khi xuất kết quả.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -462,6 +509,13 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => handleExportResults(quiz)}
+                        title="Xuất kết quả thi (Excel)"
+                        className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                      >
+                        <FileSpreadsheet className="w-4 h-4" />
+                      </button>
                       <button 
                         onClick={() => handleExportQuiz(quiz)}
                         title="Xuất đề thi (JSON)"

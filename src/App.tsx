@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db, signInWithGoogle, logout, signInWithEmail, signUpWithEmail, sendPasswordReset, sendVerification } from './firebase';
 import { User as AppUser } from './types';
-import { LogIn, LogOut, BookOpen, Loader2, AlertCircle, Clock, Mail, Lock, User as UserIcon, ArrowLeft } from 'lucide-react';
+import { LogIn, LogOut, BookOpen, Loader2, AlertCircle, Clock, Mail, Lock, User as UserIcon, ArrowLeft, Settings } from 'lucide-react';
+import ProfileModal from './components/ProfileModal';
 import { cn } from './lib/utils';
 
 // Pages
@@ -33,40 +34,79 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let userUnsubscribe: (() => void) | null = null;
+
+    const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (userUnsubscribe) {
+        userUnsubscribe();
+        userUnsubscribe = null;
+      }
+
       if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        let userDoc = await getDoc(userRef);
         const isAdminEmail = firebaseUser.email === 'nguyenphuongaistudent@gmail.com';
         
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as AppUser;
-          // If it's the admin email but role is not admin or not approved, override it for the UI
-          if (isAdminEmail && (userData.role !== 'admin' || !userData.isApproved)) {
-            setUser({ ...userData, role: 'admin', isApproved: true, emailVerified: firebaseUser.emailVerified });
-          } else {
-            setUser({ ...userData, emailVerified: firebaseUser.emailVerified });
+        if (!userDoc.exists() && firebaseUser.email) {
+          // Check if there's an imported user with this email
+          const usersRef = collection(db, 'users');
+          const q = query(usersRef, where('email', '==', firebaseUser.email));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            const importedDoc = querySnapshot.docs[0];
+            const importedData = importedDoc.data();
+            // Link this auth user to the imported data
+            await setDoc(doc(db, 'users', firebaseUser.uid), {
+              ...importedData,
+              uid: firebaseUser.uid,
+              updatedAt: serverTimestamp()
+            });
+            // Delete the old imported doc if it wasn't using the UID as ID
+            if (importedDoc.id !== firebaseUser.uid) {
+              await deleteDoc(doc(db, 'users', importedDoc.id));
+            }
+            userDoc = await getDoc(userRef);
           }
-        } else {
-          // Fallback if doc creation in signInWithGoogle failed or was delayed
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            displayName: firebaseUser.displayName || '',
-            role: isAdminEmail ? 'admin' : 'student',
-            isApproved: isAdminEmail,
-            createdAt: null as any,
-            emailVerified: firebaseUser.emailVerified
-          } as AppUser);
         }
+
+        // Set up real-time listener for user data
+        userUnsubscribe = onSnapshot(userRef, (doc) => {
+          if (doc.exists()) {
+            const userData = doc.data() as AppUser;
+            if (isAdminEmail && (userData.role !== 'admin' || !userData.isApproved)) {
+              setUser({ ...userData, role: 'admin', isApproved: true, emailVerified: firebaseUser.emailVerified });
+            } else {
+              setUser({ ...userData, emailVerified: firebaseUser.emailVerified });
+            }
+          } else {
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              displayName: firebaseUser.displayName || '',
+              role: isAdminEmail ? 'admin' : 'student',
+              isApproved: isAdminEmail,
+              createdAt: null as any,
+              emailVerified: firebaseUser.emailVerified
+            } as AppUser);
+          }
+          setLoading(false);
+        }, (error) => {
+          console.error("Error listening to user data:", error);
+          setLoading(false);
+        });
       } else {
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      authUnsubscribe();
+      if (userUnsubscribe) userUnsubscribe();
+    };
   }, []);
 
   const navigate = (page: Page, quizId: string | null = null) => {
@@ -534,6 +574,13 @@ export default function App() {
                   <p className="text-xs text-stone-500 mt-1 capitalize">{user.role}</p>
                 </div>
                 <button
+                  onClick={() => setIsProfileOpen(true)}
+                  className="p-2 text-stone-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                  title="Chỉnh sửa thông tin cá nhân"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
+                <button
                   onClick={logout}
                   className="p-2 text-stone-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   title="Đăng xuất"
@@ -562,6 +609,16 @@ export default function App() {
         )}
         {currentPage === 'results' && <Results user={user} />}
       </main>
+
+      {isProfileOpen && (
+        <ProfileModal 
+          user={user} 
+          onClose={() => setIsProfileOpen(false)} 
+          onUpdate={() => {
+            // Force re-fetch user data if needed, but onSnapshot in App.tsx handles it
+          }}
+        />
+      )}
 
       <footer className="border-t border-stone-200 py-12 bg-white mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">

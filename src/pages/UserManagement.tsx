@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, setDoc, doc, deleteDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { User, UserRole } from '../types';
-import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save, FileDown, FileUp } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface UserManagementProps {
@@ -19,6 +20,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const [newRole, setNewRole] = useState<UserRole>('student');
   const [editForm, setEditForm] = useState({ displayName: '', school: '', class: '' });
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
@@ -59,6 +61,49 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       alert('Có lỗi xảy ra khi cập nhật thông tin.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws) as any[];
+
+        let count = 0;
+        for (const row of data) {
+          const email = row.Email || row.email;
+          if (email) {
+            await addDoc(collection(db, 'users'), {
+              email: email,
+              displayName: row.DisplayName || row.name || '',
+              school: row.School || row.school || '',
+              class: row.Class || row.class || '',
+              role: (row.Role || row.role || 'student').toLowerCase(),
+              isApproved: true,
+              createdAt: serverTimestamp(),
+              uid: `pre_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            });
+            count++;
+          }
+        }
+        alert(`Đã nhập thành công ${count} thành viên.`);
+      };
+      reader.readAsBinaryString(file);
+    } catch (error) {
+      console.error('Error importing excel:', error);
+      alert('Có lỗi xảy ra khi nhập dữ liệu từ Excel.');
+    } finally {
+      setImporting(false);
+      e.target.value = '';
     }
   };
 
@@ -110,6 +155,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   };
 
   const handleDeleteUser = async (uid: string) => {
+    if (currentUser.role !== 'admin') {
+      alert('Chỉ quản trị viên mới có quyền xóa tài khoản.');
+      return;
+    }
     if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
       try {
         await deleteDoc(doc(db, 'users', uid));
@@ -151,13 +200,20 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
           <p className="text-stone-500">Phân quyền và quản lý người dùng trong hệ thống.</p>
         </div>
         
-        <button
-          onClick={() => setIsAdding(true)}
-          className="flex items-center justify-center gap-2 bg-stone-900 text-white py-3 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium shadow-lg shadow-stone-200"
-        >
-          <UserPlus className="w-5 h-5" />
-          Thêm thành viên mới
-        </button>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <label className="flex items-center justify-center gap-2 bg-white border border-stone-200 text-stone-700 py-3 px-6 rounded-xl hover:bg-stone-50 transition-all font-medium cursor-pointer">
+            {importing ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileUp className="w-5 h-5" />}
+            Nhập từ Excel
+            <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleImportExcel} disabled={importing} />
+          </label>
+          <button
+            onClick={() => setIsAdding(true)}
+            className="flex items-center justify-center gap-2 bg-stone-900 text-white py-3 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium shadow-lg shadow-stone-200"
+          >
+            <UserPlus className="w-5 h-5" />
+            Thêm thành viên mới
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
@@ -260,7 +316,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                         </button>
                         <button
                           onClick={() => handleDeleteUser(user.uid)}
-                          disabled={user.uid === currentUser.uid || (currentUser.role !== 'admin' && user.role === 'admin')}
+                          disabled={user.uid === currentUser.uid || currentUser.role !== 'admin'}
                           className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
                         >
                           <Trash2 className="w-4 h-4" />
