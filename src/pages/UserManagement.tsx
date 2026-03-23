@@ -17,6 +17,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSchool, setFilterSchool] = useState('');
   const [filterClass, setFilterClass] = useState('');
+  const [deleteProgress, setDeleteProgress] = useState<{ current: number; total: number } | null>(null);
   const [sortBy, setSortBy] = useState<{ field: keyof User; direction: 'asc' | 'desc' }>({ field: 'createdAt', direction: 'desc' });
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   
@@ -258,10 +259,16 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     
     if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedUsers.size} người dùng đã chọn?`)) {
       setSaving(true);
+      const total = selectedUsers.size;
+      let current = 0;
+      setDeleteProgress({ current, total });
+      
       try {
         for (const uid of selectedUsers) {
           if (uid !== currentUser.uid) {
             await deleteDoc(doc(db, 'users', uid));
+            current++;
+            setDeleteProgress({ current, total });
           }
         }
         setSelectedUsers(new Set());
@@ -271,6 +278,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         alert('Có lỗi xảy ra khi xóa người dùng.');
       } finally {
         setSaving(false);
+        setDeleteProgress(null);
       }
     }
   };
@@ -370,7 +378,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
 
       <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-stone-100 bg-stone-50/50 flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
             <div className="relative flex-grow">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
               <input
@@ -381,43 +389,58 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                 className="w-full pl-10 pr-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all text-sm"
               />
             </div>
-            <div className="flex items-center gap-2 text-xs font-medium text-stone-400 uppercase tracking-wider">
-              <Users className="w-4 h-4" /> Tổng số: {users.length}
+            
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5">
+                <School className="w-4 h-4 text-stone-400" />
+                <input
+                  type="text"
+                  placeholder="Lọc theo trường..."
+                  value={filterSchool}
+                  onChange={(e) => setFilterSchool(e.target.value)}
+                  className="bg-transparent border-none focus:ring-0 text-sm w-32"
+                />
+              </div>
+              <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5">
+                <BookOpen className="w-4 h-4 text-stone-400" />
+                <input
+                  type="text"
+                  placeholder="Lọc theo lớp..."
+                  value={filterClass}
+                  onChange={(e) => setFilterClass(e.target.value)}
+                  className="bg-transparent border-none focus:ring-0 text-sm w-32"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2 text-xs font-medium text-stone-400 uppercase tracking-wider ml-auto lg:ml-0">
+                <Users className="w-4 h-4" /> Tổng số: {users.length}
+              </div>
             </div>
           </div>
           
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5">
-              <School className="w-4 h-4 text-stone-400" />
-              <input
-                type="text"
-                placeholder="Lọc theo trường..."
-                value={filterSchool}
-                onChange={(e) => setFilterSchool(e.target.value)}
-                className="bg-transparent border-none focus:ring-0 text-sm w-32"
-              />
-            </div>
-            <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5">
-              <BookOpen className="w-4 h-4 text-stone-400" />
-              <input
-                type="text"
-                placeholder="Lọc theo lớp..."
-                value={filterClass}
-                onChange={(e) => setFilterClass(e.target.value)}
-                className="bg-transparent border-none focus:ring-0 text-sm w-32"
-              />
-            </div>
-            
-            {selectedUsers.size > 0 && currentUser.role === 'admin' && (
+          {selectedUsers.size > 0 && currentUser.role === 'admin' && (
+            <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-stone-200 animate-in slide-in-from-top-2">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-red-50 rounded-full flex items-center justify-center">
+                  <Trash2 className="w-4 h-4 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-stone-900">Đã chọn {selectedUsers.size} thành viên</p>
+                  {deleteProgress && (
+                    <p className="text-xs text-stone-500">Đang xóa: {deleteProgress.current}/{deleteProgress.total}</p>
+                  )}
+                </div>
+              </div>
               <button
                 onClick={handleDeleteSelected}
-                className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors ml-auto"
+                disabled={saving}
+                className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
               >
-                <Trash2 className="w-4 h-4" />
-                Xóa {selectedUsers.size} mục đã chọn
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Xác nhận xóa
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {loading ? (
