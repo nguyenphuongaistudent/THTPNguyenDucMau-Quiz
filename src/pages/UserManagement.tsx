@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, setDoc, doc, deleteDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { User, UserRole } from '../types';
-import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface UserManagementProps {
@@ -14,8 +14,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('student');
+  const [editForm, setEditForm] = useState({ displayName: '', school: '', class: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -32,6 +34,33 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
 
     return () => unsubscribe();
   }, []);
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setEditForm({
+      displayName: user.displayName || '',
+      school: user.school || '',
+      class: user.class || ''
+    });
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    setSaving(true);
+    try {
+      await setDoc(doc(db, 'users', editingUser.uid), {
+        ...editForm
+      }, { merge: true });
+      setEditingUser(null);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      alert('Có lỗi xảy ra khi cập nhật thông tin.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,13 +251,21 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => handleDeleteUser(user.uid)}
-                        disabled={user.uid === currentUser.uid || (currentUser.role !== 'admin' && user.role === 'admin')}
-                        className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.uid)}
+                          disabled={user.uid === currentUser.uid || (currentUser.role !== 'admin' && user.role === 'admin')}
+                          className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -237,6 +274,76 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
           </div>
         )}
       </div>
+
+      {/* Edit User Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={() => !saving && setEditingUser(null)} />
+          <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-8 py-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+              <h2 className="text-xl font-serif italic font-medium">Chỉnh sửa thông tin</h2>
+              <button onClick={() => setEditingUser(null)} className="p-2 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateUser} className="p-8 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                  <UserCircle className="w-4 h-4" /> Họ và tên
+                </label>
+                <input
+                  type="text"
+                  value={editForm.displayName}
+                  onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  placeholder="Nhập họ và tên"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                  <School className="w-4 h-4" /> Trường học
+                </label>
+                <input
+                  type="text"
+                  value={editForm.school}
+                  onChange={(e) => setEditForm({ ...editForm, school: e.target.value })}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  placeholder="Nhập tên trường"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" /> Lớp học
+                </label>
+                <input
+                  type="text"
+                  value={editForm.class}
+                  onChange={(e) => setEditForm({ ...editForm, class: e.target.value })}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  placeholder="Nhập tên lớp"
+                />
+              </div>
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="flex-grow py-3 px-6 rounded-xl text-stone-500 font-medium hover:bg-stone-50 transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-grow flex items-center justify-center gap-2 bg-stone-900 text-white py-3 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  Cập nhật
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Add User Modal */}
       {isAdding && (

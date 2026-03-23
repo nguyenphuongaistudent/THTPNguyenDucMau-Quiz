@@ -6,6 +6,8 @@ export interface User {
   uid: string;
   email: string;
   displayName?: string;
+  school?: string;
+  class?: string;
   role: UserRole;
   isApproved: boolean;
   createdAt: Timestamp;

@@ -8,6 +8,8 @@
         "uid": { "type": "string", "description": "ID người dùng từ Firebase Auth" },
         "email": { "type": "string", "format": "email", "description": "Email người dùng" },
         "displayName": { "type": "string", "description": "Tên hiển thị" },
+        "school": { "type": "string", "description": "Trường học" },
+        "class": { "type": "string", "description": "Lớp học" },
         "role": { "type": "string", "enum": ["admin", "teacher", "student"], "description": "Vai trò người dùng" },
         "isApproved": { "type": "boolean", "description": "Trạng thái phê duyệt tài khoản" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo tài khoản" }

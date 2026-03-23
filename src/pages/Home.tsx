@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, User, Result } from '../types';
-import { Clock, ChevronRight, BookOpen, Search, Filter, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Clock, ChevronRight, BookOpen, Search, Filter, AlertCircle, CheckCircle2, UserCircle, School, Save, Loader2, XCircle, Settings } from 'lucide-react';
+import { setDoc, doc } from 'firebase/firestore';
 import { formatDuration, formatDate, cn } from '../lib/utils';
 
 interface HomeProps {
@@ -17,6 +18,9 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string | 'all'>('all');
   const [selectedTopic, setSelectedTopic] = useState<string | 'all'>('all');
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({ displayName: user.displayName || '', school: user.school || '', class: user.class || '' });
+  const [saving, setSaving] = useState(false);
 
   const subjects = ['Toán', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh', 'Lịch sử', 'Địa lý', 'GDCD', 'Ngữ văn', 'Tin học'];
   const topics = [
@@ -74,6 +78,22 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
     return getAttemptCount(quiz.id) >= quiz.maxAttempts;
   };
 
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await setDoc(doc(db, 'users', user.uid), {
+        ...profileForm
+      }, { merge: true });
+      setIsProfileOpen(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Có lỗi xảy ra khi cập nhật thông tin.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const filteredQuizzes = quizzes.filter(quiz => {
     const matchesSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       quiz.description?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -86,8 +106,20 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-serif font-medium text-stone-900 mb-2 italic">Chào mừng, {user.displayName}</h1>
-          <p className="text-stone-500">Chọn một bài thi để bắt đầu kiểm tra kiến thức của bạn.</p>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-4xl font-serif font-medium text-stone-900 italic">Chào mừng, {user.displayName || user.email.split('@')[0]}</h1>
+            <button 
+              onClick={() => setIsProfileOpen(true)}
+              className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all"
+              title="Chỉnh sửa thông tin cá nhân"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          </div>
+          <p className="text-stone-500">
+            {user.school ? `${user.school}` : 'Chưa cập nhật trường'} 
+            {user.class ? ` - Lớp ${user.class}` : ''}
+          </p>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
@@ -227,6 +259,75 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
           </div>
           <h3 className="text-lg font-medium text-stone-900">Không tìm thấy bài thi nào</h3>
           <p className="text-stone-500">Hãy thử tìm kiếm với từ khóa khác hoặc quay lại sau.</p>
+        </div>
+      )}
+      {/* Profile Modal */}
+      {isProfileOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={() => !saving && setIsProfileOpen(false)} />
+          <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-8 py-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+              <h2 className="text-xl font-serif italic font-medium">Thông tin cá nhân</h2>
+              <button onClick={() => setIsProfileOpen(false)} className="p-2 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateProfile} className="p-8 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                  <UserCircle className="w-4 h-4" /> Họ và tên
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.displayName}
+                  onChange={(e) => setProfileForm({ ...profileForm, displayName: e.target.value })}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  placeholder="Nhập họ và tên"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                  <School className="w-4 h-4" /> Trường học
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.school}
+                  onChange={(e) => setProfileForm({ ...profileForm, school: e.target.value })}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  placeholder="Nhập tên trường"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" /> Lớp học
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.class}
+                  onChange={(e) => setProfileForm({ ...profileForm, class: e.target.value })}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  placeholder="Nhập tên lớp"
+                />
+              </div>
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="flex-grow py-3 px-6 rounded-xl text-stone-500 font-medium hover:bg-stone-50 transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-grow flex items-center justify-center gap-2 bg-stone-900 text-white py-3 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  Cập nhật
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
