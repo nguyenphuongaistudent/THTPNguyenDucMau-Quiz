@@ -5,6 +5,7 @@ export type UserRole = 'admin' | 'teacher' | 'student' | 'guest';
 export interface User {
   uid: string;
   email: string;
+  username?: string;
   displayName?: string;
   school?: string;
   class?: string;

@@ -7,6 +7,7 @@
       "properties": {
         "uid": { "type": "string", "description": "ID người dùng từ Firebase Auth" },
         "email": { "type": "string", "format": "email", "description": "Email người dùng" },
+        "username": { "type": "string", "description": "Tên đăng nhập duy nhất" },
         "displayName": { "type": "string", "description": "Tên hiển thị" },
         "school": { "type": "string", "description": "Trường học" },
         "class": { "type": "string", "description": "Lớp học" },

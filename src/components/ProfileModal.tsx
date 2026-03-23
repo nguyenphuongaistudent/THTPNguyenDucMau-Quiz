@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { UserCircle, School, BookOpen, Save, Loader2, XCircle, X } from 'lucide-react';
+import { UserCircle, School, BookOpen, Save, Loader2, XCircle, X, Mail, Lock, Key } from 'lucide-react';
 import { setDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, updateUserEmail, updateUserPassword } from '../firebase';
 import { User } from '../types';
 
 interface ProfileModalProps {
@@ -14,22 +14,51 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
   const [profileForm, setProfileForm] = useState({ 
     displayName: user.displayName || '', 
     school: user.school || '', 
-    class: user.class || '' 
+    class: user.class || '',
+    email: user.email || ''
   });
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
+      // Update Firestore profile
       await setDoc(doc(db, 'users', user.uid), {
-        ...profileForm
+        displayName: profileForm.displayName,
+        school: profileForm.school,
+        class: profileForm.class
       }, { merge: true });
+
+      // Update Email if changed
+      if (profileForm.email !== user.email) {
+        await updateUserEmail(profileForm.email);
+      }
+
+      // Update Password if provided
+      if (newPassword) {
+        if (newPassword !== confirmPassword) {
+          throw new Error('Mật khẩu xác nhận không khớp.');
+        }
+        if (newPassword.length < 6) {
+          throw new Error('Mật khẩu phải có ít nhất 6 ký tự.');
+        }
+        await updateUserPassword(newPassword);
+      }
+
       if (onUpdate) onUpdate();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating profile:', error);
-      alert('Có lỗi xảy ra khi cập nhật thông tin.');
+      let message = 'Có lỗi xảy ra khi cập nhật thông tin.';
+      if (error.code === 'auth/requires-recent-login') {
+        message = 'Vui lòng đăng xuất và đăng nhập lại để thực hiện thay đổi email hoặc mật khẩu.';
+      } else if (error.message) {
+        message = error.message;
+      }
+      alert(message);
     } finally {
       setSaving(false);
     }
@@ -72,15 +101,45 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
-              <BookOpen className="w-4 h-4" /> Lớp học
+              <Mail className="w-4 h-4" /> Địa chỉ Email
             </label>
             <input
-              type="text"
-              value={profileForm.class}
-              onChange={(e) => setProfileForm({ ...profileForm, class: e.target.value })}
+              type="email"
+              value={profileForm.email}
+              onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
               className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
-              placeholder="Nhập tên lớp"
+              placeholder="example@gmail.com"
             />
+          </div>
+
+          <div className="border-t border-stone-100 pt-4 mt-4">
+            <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-4">Đổi mật khẩu (Để trống nếu không đổi)</h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                  <Lock className="w-4 h-4" /> Mật khẩu mới
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  placeholder="••••••••"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                  <Key className="w-4 h-4" /> Xác nhận mật khẩu
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
           </div>
           <div className="pt-4 flex gap-3">
             <button

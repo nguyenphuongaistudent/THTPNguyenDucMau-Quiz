@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
-import { auth, db, signInWithGoogle, logout, signInWithEmail, signUpWithEmail, sendPasswordReset, sendVerification } from './firebase';
+import { auth, db, signInWithGoogle, logout, signUpWithEmail, sendPasswordReset, sendVerification, signInWithUsernameOrEmail } from './firebase';
 import { User as AppUser } from './types';
 import { LogIn, LogOut, BookOpen, Loader2, AlertCircle, Clock, Mail, Lock, User as UserIcon, ArrowLeft, Settings } from 'lucide-react';
 import ProfileModal from './components/ProfileModal';
@@ -33,6 +33,9 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
+  const [school, setSchool] = useState('');
+  const [className, setClassName] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -143,7 +146,7 @@ export default function App() {
     setLoginError(null);
     setAuthLoading(true);
     try {
-      await signInWithEmail(email, password);
+      await signInWithUsernameOrEmail(email, password);
     } catch (error: any) {
       console.error('Email sign in failed:', error);
       let message = 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.';
@@ -168,7 +171,7 @@ export default function App() {
       if (password.length < 6) {
         throw new Error('Mật khẩu phải có ít nhất 6 ký tự.');
       }
-      await signUpWithEmail(email, password, displayName);
+      await signUpWithEmail(email, password, displayName, username, school, className);
     } catch (error: any) {
       console.error('Email sign up failed:', error);
       let message = 'Đăng ký thất bại. Vui lòng thử lại.';
@@ -339,19 +342,69 @@ export default function App() {
               )}
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-stone-400 uppercase tracking-wider ml-1">Email</label>
+                <label className="text-xs font-bold text-stone-400 uppercase tracking-wider ml-1">
+                  {authMode === 'login' ? 'Email hoặc Tên đăng nhập' : 'Email'}
+                </label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                   <input
-                    type="email"
+                    type={authMode === 'login' ? 'text' : 'email'}
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="example@gmail.com"
+                    placeholder={authMode === 'login' ? "example@gmail.com hoặc username" : "example@gmail.com"}
                     className="w-full pl-11 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                   />
                 </div>
               </div>
+
+              {authMode === 'register' && (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-stone-400 uppercase tracking-wider ml-1">Tên đăng nhập</label>
+                    <div className="relative">
+                      <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                      <input
+                        type="text"
+                        required
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="username123"
+                        className="w-full pl-11 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-stone-400 uppercase tracking-wider ml-1">Trường học</label>
+                      <div className="relative">
+                        <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                        <input
+                          type="text"
+                          value={school}
+                          onChange={(e) => setSchool(e.target.value)}
+                          placeholder="Tên trường"
+                          className="w-full pl-11 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-stone-400 uppercase tracking-wider ml-1">Lớp học</label>
+                      <div className="relative">
+                        <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                        <input
+                          type="text"
+                          value={className}
+                          onChange={(e) => setClassName(e.target.value)}
+                          placeholder="Tên lớp"
+                          className="w-full pl-11 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {authMode !== 'forgot-password' && (
                 <div className="space-y-1">

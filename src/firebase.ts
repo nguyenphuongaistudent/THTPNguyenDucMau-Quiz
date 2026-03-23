@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, updateProfile } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, updateProfile, updateEmail, updatePassword } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, onSnapshot, addDoc, getDocs, deleteDoc, serverTimestamp, Timestamp, updateDoc } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import { UserRole } from './types';
@@ -122,7 +122,7 @@ export const signInWithGoogle = async () => {
 
 export const logout = () => signOut(auth);
 
-export const signUpWithEmail = async (email: string, pass: string, name: string) => {
+export const signUpWithEmail = async (email: string, pass: string, name: string, username?: string, school?: string, className?: string) => {
   try {
     const result = await createUserWithEmailAndPassword(auth, email, pass);
     const user = result.user;
@@ -150,7 +150,10 @@ export const signUpWithEmail = async (email: string, pass: string, name: string)
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         email: user.email,
+        username: username || user.email.split('@')[0],
         displayName: name,
+        school: school || '',
+        class: className || '',
         role: preAssignedRole,
         isApproved: isApproved,
         createdAt: serverTimestamp()
@@ -170,13 +173,51 @@ export const signUpWithEmail = async (email: string, pass: string, name: string)
   }
 };
 
-export const signInWithEmail = async (email: string, pass: string) => {
+export const signInWithUsernameOrEmail = async (loginId: string, pass: string) => {
   try {
+    let email = loginId;
+    
+    // Check if loginId is a username
+    if (!loginId.includes('@')) {
+      const q = query(collection(db, 'users'), where('username', '==', loginId));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        email = querySnapshot.docs[0].data().email;
+      } else {
+        throw new Error('Tên đăng nhập không tồn tại.');
+      }
+    }
+    
     const result = await signInWithEmailAndPassword(auth, email, pass);
     return result.user;
   } catch (error) {
-    console.error('Error signing in with email:', error);
+    console.error('Error signing in:', error);
     throw error;
+  }
+};
+
+export const checkUsernameUnique = async (username: string) => {
+  const q = query(collection(db, 'users'), where('username', '==', username));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.empty;
+};
+
+export const checkEmailUnique = async (email: string) => {
+  const q = query(collection(db, 'users'), where('email', '==', email));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.empty;
+};
+
+export const updateUserEmail = async (newEmail: string) => {
+  if (auth.currentUser) {
+    await updateEmail(auth.currentUser, newEmail);
+    await setDoc(doc(db, 'users', auth.currentUser.uid), { email: newEmail }, { merge: true });
+  }
+};
+
+export const updateUserPassword = async (newPass: string) => {
+  if (auth.currentUser) {
+    await updatePassword(auth.currentUser, newPass);
   }
 };
 

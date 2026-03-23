@@ -3,9 +3,9 @@ import { collection, onSnapshot, query, orderBy, setDoc, doc, deleteDoc, serverT
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { User, UserRole } from '../types';
 import * as XLSX from 'xlsx';
-import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save, FileDown, FileUp, Key, Download } from 'lucide-react';
+import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save, FileDown, FileUp, Key, Download, ChevronUp, ChevronDown, Filter } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { sendPasswordReset } from '../firebase';
+import { sendPasswordReset, signUpWithEmail, checkUsernameUnique, checkEmailUnique } from '../firebase';
 
 interface UserManagementProps {
   currentUser: User;
@@ -15,11 +15,21 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterSchool, setFilterSchool] = useState('');
+  const [filterClass, setFilterClass] = useState('');
+  const [sortBy, setSortBy] = useState<{ field: keyof User; direction: 'asc' | 'desc' }>({ field: 'createdAt', direction: 'desc' });
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  
   const [isAdding, setIsAdding] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newEmail, setNewEmail] = useState('');
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [newSchool, setNewSchool] = useState('');
+  const [newClass, setNewClass] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('student');
-  const [editForm, setEditForm] = useState({ displayName: '', school: '', class: '' });
+  const [editForm, setEditForm] = useState({ displayName: '', school: '', class: '', username: '' });
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
 
@@ -43,7 +53,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     setEditForm({
       displayName: user.displayName || '',
       school: user.school || '',
-      class: user.class || ''
+      class: user.class || '',
+      username: user.username || ''
     });
   };
 
@@ -80,23 +91,35 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         const data = XLSX.utils.sheet_to_json(ws) as any[];
 
         let count = 0;
+        let skipped = 0;
         for (const row of data) {
           const email = row.Email || row.email || row['Email'] || row['email'];
+          const username = row.Username || row.username || row['Tên đăng nhập'] || email?.split('@')[0];
+          
           if (email) {
-            await addDoc(collection(db, 'users'), {
-              email: email,
-              displayName: row.DisplayName || row.name || row['Họ và tên'] || '',
-              school: row.School || row.school || row['Trường'] || '',
-              class: row.Class || row.class || row['Lớp'] || '',
-              role: (row.Role || row.role || row['Vai trò'] || 'student').toLowerCase(),
-              isApproved: true,
-              createdAt: serverTimestamp(),
-              uid: `pre_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-            });
-            count++;
+            // Check if email or username already exists
+            const emailUnique = await checkEmailUnique(email);
+            const usernameUnique = username ? await checkUsernameUnique(username) : true;
+            
+            if (emailUnique && usernameUnique) {
+              await addDoc(collection(db, 'users'), {
+                email: email,
+                username: username || email.split('@')[0],
+                displayName: row.DisplayName || row.name || row['Họ và tên'] || '',
+                school: row.School || row.school || row['Trường'] || '',
+                class: row.Class || row.class || row['Lớp'] || '',
+                role: (row.Role || row.role || row['Vai trò'] || 'student').toLowerCase(),
+                isApproved: true,
+                createdAt: serverTimestamp(),
+                uid: `pre_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+              });
+              count++;
+            } else {
+              skipped++;
+            }
           }
         }
-        alert(`Đã nhập thành công ${count} thành viên.`);
+        alert(`Đã nhập thành công ${count} thành viên.${skipped > 0 ? ` Bỏ qua ${skipped} thành viên đã tồn tại.` : ''}`);
       };
       reader.readAsBinaryString(file);
     } catch (error) {
@@ -151,24 +174,34 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmail) return;
+    if (!newEmail || !newPassword || !newUsername) return;
 
     setSaving(true);
     try {
-      // Create a document with a random ID, but with the email and role
-      // When the user signs in with Google, we'll merge this
-      await addDoc(collection(db, 'users'), {
-        email: newEmail,
-        role: newRole,
-        isApproved: true,
-        createdAt: serverTimestamp(),
-        uid: `pre_${Date.now()}` // Temporary ID
-      });
+      const emailUnique = await checkEmailUnique(newEmail);
+      if (!emailUnique) {
+        alert('Email này đã tồn tại trong hệ thống.');
+        return;
+      }
+
+      const usernameUnique = await checkUsernameUnique(newUsername);
+      if (!usernameUnique) {
+        alert('Tên đăng nhập này đã tồn tại.');
+        return;
+      }
+
+      await signUpWithEmail(newEmail, newPassword, newDisplayName, newUsername, newSchool, newClass);
+      
       setNewEmail('');
+      setNewUsername('');
+      setNewPassword('');
+      setNewDisplayName('');
+      setNewSchool('');
+      setNewClass('');
       setIsAdding(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding user:', error);
-      alert('Có lỗi xảy ra khi thêm người dùng.');
+      alert(error.message || 'Có lỗi xảy ra khi thêm người dùng.');
     } finally {
       setSaving(false);
     }
@@ -204,6 +237,11 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
       try {
         await deleteDoc(doc(db, 'users', uid));
+        setSelectedUsers(prev => {
+          const next = new Set(prev);
+          next.delete(uid);
+          return next;
+        });
       } catch (error) {
         console.error('Error deleting user:', error);
         alert('Có lỗi xảy ra khi xóa người dùng.');
@@ -211,10 +249,75 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.displayName?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleDeleteSelected = async () => {
+    if (currentUser.role !== 'admin') {
+      alert('Chỉ quản trị viên mới có quyền xóa tài khoản.');
+      return;
+    }
+    if (selectedUsers.size === 0) return;
+    
+    if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedUsers.size} người dùng đã chọn?`)) {
+      setSaving(true);
+      try {
+        for (const uid of selectedUsers) {
+          if (uid !== currentUser.uid) {
+            await deleteDoc(doc(db, 'users', uid));
+          }
+        }
+        setSelectedUsers(new Set());
+        alert('Đã xóa thành công.');
+      } catch (error) {
+        console.error('Error deleting users:', error);
+        alert('Có lỗi xảy ra khi xóa người dùng.');
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUsers.size === filteredUsers.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(filteredUsers.map(u => u.uid)));
+    }
+  };
+
+  const toggleSelectUser = (uid: string) => {
+    setSelectedUsers(prev => {
+      const next = new Set(prev);
+      if (next.has(uid)) {
+        next.delete(uid);
+      } else {
+        next.add(uid);
+      }
+      return next;
+    });
+  };
+
+  const handleSort = (field: keyof User) => {
+    setSortBy(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const filteredUsers = users
+    .filter(u => {
+      const matchesSearch = u.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           u.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           u.username?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSchool = !filterSchool || u.school?.toLowerCase().includes(filterSchool.toLowerCase());
+      const matchesClass = !filterClass || u.class?.toLowerCase().includes(filterClass.toLowerCase());
+      return matchesSearch && matchesSchool && matchesClass;
+    })
+    .sort((a, b) => {
+      const aVal = a[sortBy.field] || '';
+      const bVal = b[sortBy.field] || '';
+      if (aVal < bVal) return sortBy.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortBy.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
@@ -266,19 +369,54 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       </div>
 
       <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-stone-100 bg-stone-50/50 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo email hoặc tên..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all text-sm"
-            />
+        <div className="p-6 border-b border-stone-100 bg-stone-50/50 flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo email, tên hoặc tên đăng nhập..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2 text-xs font-medium text-stone-400 uppercase tracking-wider">
+              <Users className="w-4 h-4" /> Tổng số: {users.length}
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs font-medium text-stone-400 uppercase tracking-wider">
-            <Users className="w-4 h-4" /> Tổng số: {users.length}
+          
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5">
+              <School className="w-4 h-4 text-stone-400" />
+              <input
+                type="text"
+                placeholder="Lọc theo trường..."
+                value={filterSchool}
+                onChange={(e) => setFilterSchool(e.target.value)}
+                className="bg-transparent border-none focus:ring-0 text-sm w-32"
+              />
+            </div>
+            <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5">
+              <BookOpen className="w-4 h-4 text-stone-400" />
+              <input
+                type="text"
+                placeholder="Lọc theo lớp..."
+                value={filterClass}
+                onChange={(e) => setFilterClass(e.target.value)}
+                className="bg-transparent border-none focus:ring-0 text-sm w-32"
+              />
+            </div>
+            
+            {selectedUsers.size > 0 && currentUser.role === 'admin' && (
+              <button
+                onClick={handleDeleteSelected}
+                className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors ml-auto"
+              >
+                <Trash2 className="w-4 h-4" />
+                Xóa {selectedUsers.size} mục đã chọn
+              </button>
+            )}
           </div>
         </div>
 
@@ -292,7 +430,32 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-stone-50/30 border-b border-stone-100">
-                  <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Thành viên</th>
+                  <th className="px-6 py-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
+                      onChange={toggleSelectAll}
+                      className="rounded border-stone-300 text-stone-900 focus:ring-stone-500"
+                    />
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider cursor-pointer hover:text-stone-900"
+                    onClick={() => handleSort('displayName')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Thành viên
+                      {sortBy.field === 'displayName' && (sortBy.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider cursor-pointer hover:text-stone-900"
+                    onClick={() => handleSort('school')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Trường / Lớp
+                      {sortBy.field === 'school' && (sortBy.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                    </div>
+                  </th>
                   <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Vai trò</th>
                   <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Phê duyệt</th>
                   <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Trạng thái</th>
@@ -301,7 +464,15 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
               </thead>
               <tbody className="divide-y divide-stone-50">
                 {filteredUsers.map((user) => (
-                  <tr key={user.uid} className="hover:bg-stone-50/30 transition-colors">
+                  <tr key={user.uid} className={cn("hover:bg-stone-50/30 transition-colors", selectedUsers.has(user.uid) && "bg-stone-50")}>
+                    <td className="px-6 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.has(user.uid)}
+                        onChange={() => toggleSelectUser(user.uid)}
+                        className="rounded border-stone-300 text-stone-900 focus:ring-stone-500"
+                      />
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-stone-100 rounded-full flex items-center justify-center text-stone-500 font-medium">
@@ -309,9 +480,13 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                         </div>
                         <div>
                           <div className="font-medium text-stone-900">{user.displayName || 'Chưa cập nhật'}</div>
-                          <div className="text-xs text-stone-400">{user.email}</div>
+                          <div className="text-xs text-stone-400">{user.username || user.email}</div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-stone-600">{user.school || '-'}</div>
+                      <div className="text-xs text-stone-400">{user.class || '-'}</div>
                     </td>
                     <td className="px-6 py-4">
                       <select
@@ -415,6 +590,18 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                  <UserCircle className="w-4 h-4" /> Tên đăng nhập
+                </label>
+                <input
+                  type="text"
+                  value={editForm.username}
+                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  placeholder="Nhập tên đăng nhập"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
                   <School className="w-4 h-4" /> Trường học
                 </label>
                 <input
@@ -470,19 +657,90 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                 <Trash2 className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleAddUser} className="p-8 space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
-                  <Mail className="w-4 h-4" /> Email người dùng
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
-                  placeholder="name@example.com"
-                />
+            <form onSubmit={handleAddUser} className="p-8 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <UserCircle className="w-4 h-4" /> Họ và tên
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newDisplayName}
+                    onChange={(e) => setNewDisplayName(e.target.value)}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                    placeholder="Nguyễn Văn A"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <UserCircle className="w-4 h-4" /> Tên đăng nhập
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                    placeholder="username123"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <Mail className="w-4 h-4" /> Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                    placeholder="name@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <Key className="w-4 h-4" /> Mật khẩu ban đầu
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <School className="w-4 h-4" /> Trường học
+                  </label>
+                  <input
+                    type="text"
+                    value={newSchool}
+                    onChange={(e) => setNewSchool(e.target.value)}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                    placeholder="Tên trường"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" /> Lớp học
+                  </label>
+                  <input
+                    type="text"
+                    value={newClass}
+                    onChange={(e) => setNewClass(e.target.value)}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                    placeholder="Tên lớp"
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
