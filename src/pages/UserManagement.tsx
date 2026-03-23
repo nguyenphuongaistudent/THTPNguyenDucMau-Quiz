@@ -38,7 +38,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const userList = snapshot.docs.map(doc => ({
-        ...doc.data()
+        ...doc.data(),
+        uid: doc.id // Ensure uid is always the Firestore document ID
       })) as User[];
       setUsers(userList);
       setLoading(false);
@@ -103,7 +104,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             const usernameUnique = username ? await checkUsernameUnique(username) : true;
             
             if (emailUnique && usernameUnique) {
-              await addDoc(collection(db, 'users'), {
+              const uid = `pre_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              await setDoc(doc(db, 'users', uid), {
                 email: email,
                 username: username || email.split('@')[0],
                 displayName: row.DisplayName || row.name || row['Họ và tên'] || '',
@@ -112,7 +114,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                 role: (row.Role || row.role || row['Vai trò'] || 'student').toLowerCase(),
                 isApproved: true,
                 createdAt: serverTimestamp(),
-                uid: `pre_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+                uid: uid
               });
               count++;
             } else {
