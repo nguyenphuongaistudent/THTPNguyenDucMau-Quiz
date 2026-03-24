@@ -109,7 +109,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             normalizedRow['email address'] || 
             normalizedRow['địa chỉ email'] || 
             ''
-          ).toString().trim();
+          ).toString().trim().toLowerCase();
 
           const displayName = (
             normalizedRow['họ và tên'] || 

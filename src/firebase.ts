@@ -196,21 +196,33 @@ export const signUpWithEmail = async (email: string, pass: string, name: string,
 
 export const signInWithUsernameOrEmail = async (loginId: string, pass: string) => {
   try {
-    let email = loginId;
+    let email = loginId.trim();
     let firestoreUser: any = null;
+    let firestoreDocId: string | null = null;
     
     // Find user in Firestore first to get the correct email and check stored password
     const usersRef = collection(db, 'users');
-    let q;
-    if (loginId.includes('@')) {
-      q = query(usersRef, where('email', '==', loginId));
-    } else {
-      q = query(usersRef, where('username', '==', loginId));
+    
+    // Try exact match first
+    let q = loginId.includes('@') 
+      ? query(usersRef, where('email', '==', loginId.trim()))
+      : query(usersRef, where('username', '==', loginId.trim()));
+    
+    let querySnapshot = await getDocs(q);
+    
+    // If not found, try case-insensitive for email/username if they were stored differently
+    if (querySnapshot.empty) {
+      if (loginId.includes('@')) {
+        q = query(usersRef, where('email', '==', loginId.trim().toLowerCase()));
+      } else {
+        q = query(usersRef, where('username', '==', loginId.trim().toLowerCase()));
+      }
+      querySnapshot = await getDocs(q);
     }
     
-    const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
       firestoreUser = querySnapshot.docs[0].data();
+      firestoreDocId = querySnapshot.docs[0].id;
       email = firestoreUser.email;
     } else if (!loginId.includes('@')) {
       throw new Error('Tên đăng nhập không tồn tại.');
@@ -221,31 +233,52 @@ export const signInWithUsernameOrEmail = async (loginId: string, pass: string) =
       const result = await signInWithEmailAndPassword(auth, email, pass);
       return result.user;
     } catch (authError: any) {
-      // If user not found in Auth but exists in Firestore with matching password
-      if (authError.code === 'auth/user-not-found' && firestoreUser && firestoreUser.password === pass) {
-        // Auto-create Auth account for imported user
-        const result = await createUserWithEmailAndPassword(auth, email, pass);
-        
-        // Update Firestore document to link with the new UID and remove the plain text password
-        const oldDocId = querySnapshot.docs[0].id;
-        await setDoc(doc(db, 'users', result.user.uid), {
-          ...firestoreUser,
-          uid: result.user.uid,
-          updatedAt: serverTimestamp()
-        });
-        
-        // Remove password from Firestore for security after first login
-        await updateDoc(doc(db, 'users', result.user.uid), {
-          password: deleteField()
-        });
+      console.log('Auth error code:', authError.code);
+      
+      // If user not found in Auth OR invalid credential (could be enumeration protection)
+      // AND we have a firestore user with a matching password
+      const isUserNotFound = authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential';
+      
+      if (isUserNotFound && firestoreUser && firestoreUser.password === pass) {
+        try {
+          // Auto-create Auth account for imported user
+          const result = await createUserWithEmailAndPassword(auth, email, pass);
+          
+          // Update Firestore document to link with the new UID and remove the plain text password
+          await setDoc(doc(db, 'users', result.user.uid), {
+            ...firestoreUser,
+            uid: result.user.uid,
+            updatedAt: serverTimestamp()
+          });
+          
+          // Remove password from Firestore for security after first login
+          await updateDoc(doc(db, 'users', result.user.uid), {
+            password: deleteField()
+          });
 
-        // Delete the old "pre_" document if it was different
-        if (oldDocId !== result.user.uid) {
-          await deleteDoc(doc(db, 'users', oldDocId));
+          // Delete the old "pre_" document if it was different
+          if (firestoreDocId && firestoreDocId !== result.user.uid) {
+            await deleteDoc(doc(db, 'users', firestoreDocId));
+          }
+          
+          return result.user;
+        } catch (createError: any) {
+          // If user already exists in Auth but we got invalid-credential, it's actually a wrong password
+          if (createError.code === 'auth/email-already-in-use') {
+             throw new Error('Mật khẩu không chính xác.');
+          }
+          throw createError;
         }
-        
-        return result.user;
       }
+      
+      // Map common errors to friendly messages
+      if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
+        throw new Error('Mật khẩu không chính xác.');
+      }
+      if (authError.code === 'auth/user-not-found') {
+        throw new Error('Tài khoản không tồn tại.');
+      }
+      
       throw authError;
     }
   } catch (error) {
@@ -255,13 +288,13 @@ export const signInWithUsernameOrEmail = async (loginId: string, pass: string) =
 };
 
 export const checkUsernameUnique = async (username: string) => {
-  const q = query(collection(db, 'users'), where('username', '==', username));
+  const q = query(collection(db, 'users'), where('username', '==', username.trim()));
   const querySnapshot = await getDocs(q);
   return querySnapshot.empty;
 };
 
 export const checkEmailUnique = async (email: string) => {
-  const q = query(collection(db, 'users'), where('email', '==', email));
+  const q = query(collection(db, 'users'), where('email', '==', email.trim().toLowerCase()));
   const querySnapshot = await getDocs(q);
   return querySnapshot.empty;
 };
