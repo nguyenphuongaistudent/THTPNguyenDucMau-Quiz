@@ -304,15 +304,18 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       duration: imported.duration,
       isActive: true
     });
-    setEditingQuestions(imported.questions.map((q, index) => ({
-      ...q,
-      type: q.type || 'multiple_choice',
-      options: q.options || ['', '', '', ''],
-      correctOptionIndex: q.correctOptionIndex ?? 0,
-      correctAnswers: q.correctAnswers || [true, true, true, true],
-      explanation: q.explanation || '',
-      order: q.order ?? index
-    })));
+    setEditingQuestions(imported.questions.map((q, index) => {
+      const { id, ...rest } = q as any;
+      return {
+        ...rest,
+        type: q.type || 'multiple_choice',
+        options: q.options || ['', '', '', ''],
+        correctOptionIndex: q.correctOptionIndex ?? 0,
+        correctAnswers: q.correctAnswers || [true, true, true, true],
+        explanation: q.explanation || '',
+        order: q.order ?? index
+      };
+    }));
     setOriginalQuestionIds([]);
     setExpandedQuestions({ 0: true });
     setIsModalOpen(true);
@@ -470,7 +473,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
           type: q.type || 'multiple_choice',
           text: q.text,
           explanation: q.explanation || '',
-          order: i // Use the current index in validQuestions to preserve order
+          order: i, // Use the current index in validQuestions to preserve order
+          updatedAt: serverTimestamp()
         };
 
         if (q.id) {
@@ -485,7 +489,6 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
             if (isNaN(qData.correctOptionIndex) || qData.correctOptionIndex < 0 || qData.correctOptionIndex >= qData.options.length) {
               qData.correctOptionIndex = 0;
             }
-            qData.correctAnswers = deleteField(); 
           } else {
             // Ensure correctAnswers is exactly 4 booleans
             let ca = q.correctAnswers;
@@ -498,10 +501,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
             if (!Array.isArray(opts)) opts = ['', '', '', ''];
             qData.options = opts.slice(0, 4).map(v => String(v || ''));
             while (qData.options.length < 4) qData.options.push('');
-            
-            qData.correctOptionIndex = deleteField();
           }
-          batch.update(doc(questionsCol, q.id), qData);
+          batch.set(doc(questionsCol, q.id), qData);
           keptQuestionIds.add(q.id);
         } else {
           if (q.type === 'multiple_choice') {

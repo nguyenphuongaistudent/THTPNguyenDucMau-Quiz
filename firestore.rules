@@ -102,27 +102,29 @@ service cloud.firestore {
     }
 
     function isValidQuiz(data) {
-      return hasOnlyAllowedFields(['title', 'description', 'subject', 'topic', 'duration', 'maxAttempts', 'createdBy', 'createdAt', 'isActive', 'updatedAt', 'allowedRoles']) &&
-             (!('title' in data) || (data.title is string && data.title.size() > 0 && data.title.size() <= 200)) &&
-             (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
-             (!('subject' in data) || (data.subject is string && data.subject.size() > 0 && data.subject.size() <= 100)) &&
+      return hasOnlyAllowedFields(['id', 'title', 'description', 'subject', 'topic', 'duration', 'maxAttempts', 'createdBy', 'createdAt', 'isActive', 'updatedAt', 'allowedRoles']) &&
+             (!('id' in data) || data.id is string) &&
+             (!('title' in data) || (data.title is string && data.title.size() > 0 && data.title.size() <= 500)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 10000)) &&
+             (!('subject' in data) || (data.subject is string && data.subject.size() > 0 && data.subject.size() <= 200)) &&
              (!('topic' in data) || (data.topic in ['regular', 'periodic', 'graduation'])) &&
              (!('duration' in data) || (data.duration is number && data.duration > 0 && data.duration <= 1440)) &&
-             (!('maxAttempts' in data) || (data.maxAttempts is number && data.maxAttempts >= 0 && data.maxAttempts <= 100)) &&
+             (!('maxAttempts' in data) || (data.maxAttempts is number && data.maxAttempts >= 0 && data.maxAttempts <= 1000)) &&
              (!('createdBy' in data) || (data.createdBy is string)) &&
              (!('isActive' in data) || (data.isActive is bool)) &&
-             (!('allowedRoles' in data) || (data.allowedRoles is list && data.allowedRoles.size() >= 1 && data.allowedRoles.size() <= 5));
+             (!('allowedRoles' in data) || (data.allowedRoles is list && data.allowedRoles.size() >= 1 && data.allowedRoles.size() <= 10));
     }
 
     function isValidQuestion(data) {
-      return hasOnlyAllowedFields(['type', 'text', 'options', 'correctOptionIndex', 'correctAnswers', 'explanation', 'order']) &&
+      return hasOnlyAllowedFields(['id', 'type', 'text', 'options', 'correctOptionIndex', 'correctAnswers', 'explanation', 'order', 'updatedAt']) &&
+             (!('id' in data) || data.id is string) &&
              data.type in ['multiple_choice', 'true_false'] &&
-             data.text is string && data.text.size() > 0 && data.text.size() <= 10000 &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 1000000 &&
              data.options is list && data.options.size() >= 2 && data.options.size() <= 10 &&
              (data.type == 'multiple_choice' ? 
                (data.correctOptionIndex is number && data.correctOptionIndex >= 0 && data.correctOptionIndex < data.options.size()) : 
                (data.correctAnswers is list && data.correctAnswers.size() == 4)) &&
-             (!('explanation' in data) || (data.explanation is string && data.explanation.size() <= 10000)) &&
+             (!('explanation' in data) || (data.explanation is string && data.explanation.size() <= 1000000)) &&
              (data.order is number);
     }
 
