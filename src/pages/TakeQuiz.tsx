@@ -299,7 +299,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
             {currentQuestionIndex + 1}
           </div>
           <div>
-            <h2 className="text-sm font-medium text-stone-900 line-clamp-1">{quiz.title}</h2>
+            <h2 className="text-sm font-medium text-stone-900">{quiz.title}</h2>
             <div className="w-48 h-1.5 bg-stone-100 rounded-full mt-1 overflow-hidden">
               <div 
                 className="h-full bg-emerald-500 transition-all duration-300" 
@@ -331,15 +331,15 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Main Question Area */}
-        <div className="lg:col-span-3 space-y-8">
+        <div className="lg:col-span-3 space-y-8 min-w-0">
           {/* Question Card */}
-          <div className="bg-white rounded-3xl border border-stone-200 p-8 sm:p-12 shadow-sm min-h-[400px] flex flex-col">
-            <div className="flex-grow">
+          <div className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-10 md:p-12 shadow-sm min-h-[400px] flex flex-col">
+            <div className="flex-grow min-w-0 break-words whitespace-normal">
               <p className="text-sm font-bold text-stone-400 uppercase tracking-widest mb-4">
                 {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm' : 'Phần 2: Đúng/Sai'} - Câu {currentQuestionIndex + 1} / {questions.length}
               </p>
               <h3 
-                className="text-base sm:text-lg font-sans font-medium text-stone-900 mb-10 leading-relaxed markdown-body text-justify-all"
+                className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-10 leading-relaxed markdown-body break-words whitespace-normal w-full"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.text) }}
               />
 
@@ -365,7 +365,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         {String.fromCharCode(65 + index)}
                       </div>
                       <div className={cn(
-                        "text-xs sm:text-sm font-sans font-medium transition-colors flex-1 min-w-0 text-justify-all",
+                        "text-sm sm:text-base font-sans font-medium transition-colors flex-1 min-w-0 break-words whitespace-normal w-full",
                         currentQuestion.type === 'true_false' && "markdown-body",
                         answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
                       )}
@@ -380,7 +380,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         <div className="flex items-start gap-4 flex-grow min-w-0">
                           <span className="font-bold text-emerald-600 w-6 shrink-0 mt-1">{label}.</span>
                           <div 
-                            className="text-stone-700 text-[10px] sm:text-xs font-sans font-medium flex-1 markdown-body leading-relaxed prose prose-stone max-w-none text-justify-all"
+                            className="text-stone-700 text-xs sm:text-sm font-sans font-medium flex-1 markdown-body leading-relaxed prose prose-stone max-w-none break-words whitespace-normal w-full"
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.options[index]) }}
                           />
                         </div>
@@ -454,13 +454,13 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               {mcQuestions.length > 0 && (
                 <div>
                   <p className="text-[10px] font-bold text-stone-400 uppercase mb-3 px-1">Phần 1: Trắc nghiệm</p>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-3">
                     {mcQuestions.map((q) => (
                       <button
                         key={q.originalIndex}
                         onClick={() => setCurrentQuestionIndex(q.originalIndex)}
                         className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all",
+                          "w-11 h-11 rounded-xl flex items-center justify-center text-xs font-bold transition-all",
                           currentQuestionIndex === q.originalIndex 
                             ? "bg-stone-900 text-white shadow-md scale-110 z-10" 
                             : answers[q.originalIndex] !== -1 && (!Array.isArray(answers[q.originalIndex]) || (answers[q.originalIndex] as (boolean | null)[]).some(a => a !== null))
@@ -478,13 +478,13 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               {tfQuestions.length > 0 && (
                 <div>
                   <p className="text-[10px] font-bold text-stone-400 uppercase mb-3 px-1">Phần 2: Đúng/Sai</p>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-3">
                     {tfQuestions.map((q) => (
                       <button
                         key={q.originalIndex}
                         onClick={() => setCurrentQuestionIndex(q.originalIndex)}
                         className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all",
+                          "w-11 h-11 rounded-xl flex items-center justify-center text-xs font-bold transition-all",
                           currentQuestionIndex === q.originalIndex 
                             ? "bg-stone-900 text-white shadow-md scale-110 z-10" 
                             : (answers[q.originalIndex] as (boolean | null)[]).some(a => a !== null)

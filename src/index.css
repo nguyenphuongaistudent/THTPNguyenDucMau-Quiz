@@ -25,11 +25,12 @@
 }
 
 .markdown-body {
-  overflow-wrap: normal;
-  word-wrap: normal;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
   word-break: normal;
-  overflow-x: hidden;
+  white-space: pre-wrap;
   font-family: inherit;
+  hyphens: none;
 }
 
 .markdown-body table {
@@ -55,7 +56,4 @@
   margin: 1rem 0;
 }
 
-.text-justify-all {
-  text-align: justify;
-  text-justify: inter-word;
-}
+
