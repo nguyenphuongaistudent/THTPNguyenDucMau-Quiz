@@ -365,7 +365,8 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         {String.fromCharCode(65 + index)}
                       </div>
                       <div className={cn(
-                        "text-lg font-medium transition-colors flex-1 min-w-0 markdown-body",
+                        "text-lg font-medium transition-colors flex-1 min-w-0",
+                        currentQuestion.type === 'true_false' && "markdown-body",
                         answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
                       )}
                       dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(option) }}

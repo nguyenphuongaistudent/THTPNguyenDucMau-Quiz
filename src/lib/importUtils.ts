@@ -140,7 +140,8 @@ export const parseWord = async (arrayBuffer: ArrayBuffer): Promise<ImportedQuiz>
           if (currentQuestion.options && currentQuestion.options.length > 0) {
             // Continuation of last option
             const lastIdx = currentQuestion.options.length - 1;
-            currentQuestion.options[lastIdx] = currentQuestion.options[lastIdx] + '<br>' + line;
+            const separator = currentQuestion.type === 'multiple_choice' ? ' ' : '<br>';
+            currentQuestion.options[lastIdx] = currentQuestion.options[lastIdx] + separator + line;
           } else {
             // Continuation of question text
             currentQuestion.text = (currentQuestion.text || '') + '<br>' + line;

@@ -125,20 +125,13 @@ const QuestionEditor = memo(({
                     onChange={() => onUpdate(qIndex, 'correctOptionIndex', oIndex)}
                     className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
                   />
-                  <div className="flex-grow bg-white rounded-lg overflow-hidden border border-stone-200">
-                    <ReactQuill
-                      theme="snow"
-                      value={opt || ''}
-                      onChange={(val) => onUpdateOption(qIndex, oIndex, val)}
-                      modules={{
-                        toolbar: [
-                          ['bold', 'italic', 'underline'],
-                          ['clean']
-                        ],
-                      }}
-                      placeholder={`Lựa chọn ${oIndex + 1}`}
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    value={opt || ''}
+                    onChange={(e) => onUpdateOption(qIndex, oIndex, e.target.value)}
+                    className="flex-grow px-4 py-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                    placeholder={`Lựa chọn ${oIndex + 1}`}
+                  />
                 </div>
               ))}
             </div>
