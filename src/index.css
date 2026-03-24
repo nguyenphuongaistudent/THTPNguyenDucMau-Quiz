@@ -25,8 +25,8 @@
 }
 
 .markdown-body {
-  overflow-wrap: break-word;
-  word-wrap: break-word;
+  overflow-wrap: normal;
+  word-wrap: normal;
   word-break: normal;
   overflow-x: hidden;
   font-family: inherit;

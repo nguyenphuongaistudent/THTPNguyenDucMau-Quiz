@@ -257,7 +257,7 @@ export default function App() {
               <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle,white_1px,transparent_1px)] [background-size:20px_20px]" />
             </div>
             <div className="relative z-10">
-              <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-6 border border-white/20 overflow-hidden">
+              <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-6 border border-white/20 overflow-hidden">
                 <img 
                   src="https://lh3.googleusercontent.com/d/1nJFV426bMfXBj-Ce8neJl-GpSlLTJgmV" 
                   alt="EduQuiz Logo" 
@@ -577,7 +577,7 @@ export default function App() {
               className="flex items-center gap-2 cursor-pointer" 
               onClick={() => navigate('home')}
             >
-              <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center overflow-hidden">
+              <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center overflow-hidden">
                 <img 
                   src="https://lh3.googleusercontent.com/d/1nJFV426bMfXBj-Ce8neJl-GpSlLTJgmV" 
                   alt="EduQuiz Logo" 

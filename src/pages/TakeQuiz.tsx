@@ -339,7 +339,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm' : 'Phần 2: Đúng/Sai'} - Câu {currentQuestionIndex + 1} / {questions.length}
               </p>
               <h3 
-                className="text-2xl sm:text-3xl font-sans font-medium text-stone-900 mb-10 leading-relaxed markdown-body text-justify-all"
+                className="text-base sm:text-lg font-sans font-medium text-stone-900 mb-10 leading-relaxed markdown-body text-justify-all"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.text) }}
               />
 
@@ -365,7 +365,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         {String.fromCharCode(65 + index)}
                       </div>
                       <div className={cn(
-                        "text-base sm:text-lg font-sans font-medium transition-colors flex-1 min-w-0 text-justify-all",
+                        "text-xs sm:text-sm font-sans font-medium transition-colors flex-1 min-w-0 text-justify-all",
                         currentQuestion.type === 'true_false' && "markdown-body",
                         answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
                       )}
@@ -380,7 +380,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         <div className="flex items-start gap-4 flex-grow min-w-0">
                           <span className="font-bold text-emerald-600 w-6 shrink-0 mt-1">{label}.</span>
                           <div 
-                            className="text-stone-700 text-sm sm:text-lg font-sans font-medium flex-1 markdown-body leading-relaxed prose prose-stone max-w-none text-justify-all"
+                            className="text-stone-700 text-[10px] sm:text-xs font-sans font-medium flex-1 markdown-body leading-relaxed prose prose-stone max-w-none text-justify-all"
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.options[index]) }}
                           />
                         </div>
@@ -454,7 +454,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               {mcQuestions.length > 0 && (
                 <div>
                   <p className="text-[10px] font-bold text-stone-400 uppercase mb-3 px-1">Phần 1: Trắc nghiệm</p>
-                  <div className="grid grid-cols-8 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     {mcQuestions.map((q) => (
                       <button
                         key={q.originalIndex}
@@ -478,7 +478,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               {tfQuestions.length > 0 && (
                 <div>
                   <p className="text-[10px] font-bold text-stone-400 uppercase mb-3 px-1">Phần 2: Đúng/Sai</p>
-                  <div className="grid grid-cols-8 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     {tfQuestions.map((q) => (
                       <button
                         key={q.originalIndex}

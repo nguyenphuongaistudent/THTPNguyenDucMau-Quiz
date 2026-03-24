@@ -13,7 +13,7 @@ export default function Landing({ onLogin, onRegister }: LandingProps) {
       <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center overflow-hidden">
+            <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center overflow-hidden">
               <img 
                 src="https://lh3.googleusercontent.com/d/1nJFV426bMfXBj-Ce8neJl-GpSlLTJgmV" 
                 alt="EduQuiz Logo" 
