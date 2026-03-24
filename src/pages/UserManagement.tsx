@@ -125,6 +125,12 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             (email ? email.split('@')[0] : '')
           ).toString().trim();
 
+          const password = (
+            normalizedRow['mật khẩu'] || 
+            normalizedRow['password'] || 
+            '123456'
+          ).toString().trim();
+
           const school = (
             normalizedRow['trường'] || 
             normalizedRow['school'] || 
@@ -153,6 +159,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
               await setDoc(doc(db, 'users', uid), {
                 email: email,
                 username: username,
+                password: password, // Store password for initial login
                 displayName: displayName,
                 school: school,
                 class: className,

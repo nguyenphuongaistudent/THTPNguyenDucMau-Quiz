@@ -61,13 +61,16 @@ export default function App() {
           if (!querySnapshot.empty) {
             const importedDoc = querySnapshot.docs[0];
             const importedData = importedDoc.data();
+            // Remove password from the data to be linked
+            const { password, ...safeData } = importedData;
+            
             // Link this auth user to the imported data
             await setDoc(doc(db, 'users', firebaseUser.uid), {
-              ...importedData,
+              ...safeData,
               uid: firebaseUser.uid,
-              username: importedData.username || firebaseUser.email.split('@')[0],
-              school: importedData.school || 'Trường Tự do',
-              class: importedData.class || 'Tự do',
+              username: safeData.username || firebaseUser.email.split('@')[0],
+              school: safeData.school || 'Trường Tự do',
+              class: safeData.class || 'Tự do',
               updatedAt: serverTimestamp()
             });
             // Delete the old imported doc if it wasn't using the UID as ID

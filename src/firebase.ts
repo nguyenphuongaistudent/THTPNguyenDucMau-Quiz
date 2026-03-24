@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, updateProfile, updateEmail, updatePassword } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, collection, query, where, onSnapshot, addDoc, getDocs, deleteDoc, serverTimestamp, Timestamp, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, onSnapshot, addDoc, getDocs, deleteDoc, serverTimestamp, Timestamp, updateDoc, deleteField } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import { UserRole } from './types';
 
@@ -197,20 +197,57 @@ export const signUpWithEmail = async (email: string, pass: string, name: string,
 export const signInWithUsernameOrEmail = async (loginId: string, pass: string) => {
   try {
     let email = loginId;
+    let firestoreUser: any = null;
     
-    // Check if loginId is a username
-    if (!loginId.includes('@')) {
-      const q = query(collection(db, 'users'), where('username', '==', loginId));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        email = querySnapshot.docs[0].data().email;
-      } else {
-        throw new Error('Tên đăng nhập không tồn tại.');
-      }
+    // Find user in Firestore first to get the correct email and check stored password
+    const usersRef = collection(db, 'users');
+    let q;
+    if (loginId.includes('@')) {
+      q = query(usersRef, where('email', '==', loginId));
+    } else {
+      q = query(usersRef, where('username', '==', loginId));
     }
     
-    const result = await signInWithEmailAndPassword(auth, email, pass);
-    return result.user;
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      firestoreUser = querySnapshot.docs[0].data();
+      email = firestoreUser.email;
+    } else if (!loginId.includes('@')) {
+      throw new Error('Tên đăng nhập không tồn tại.');
+    }
+    
+    try {
+      // Try normal sign in
+      const result = await signInWithEmailAndPassword(auth, email, pass);
+      return result.user;
+    } catch (authError: any) {
+      // If user not found in Auth but exists in Firestore with matching password
+      if (authError.code === 'auth/user-not-found' && firestoreUser && firestoreUser.password === pass) {
+        // Auto-create Auth account for imported user
+        const result = await createUserWithEmailAndPassword(auth, email, pass);
+        
+        // Update Firestore document to link with the new UID and remove the plain text password
+        const oldDocId = querySnapshot.docs[0].id;
+        await setDoc(doc(db, 'users', result.user.uid), {
+          ...firestoreUser,
+          uid: result.user.uid,
+          updatedAt: serverTimestamp()
+        });
+        
+        // Remove password from Firestore for security after first login
+        await updateDoc(doc(db, 'users', result.user.uid), {
+          password: deleteField()
+        });
+
+        // Delete the old "pre_" document if it was different
+        if (oldDocId !== result.user.uid) {
+          await deleteDoc(doc(db, 'users', oldDocId));
+        }
+        
+        return result.user;
+      }
+      throw authError;
+    }
   } catch (error) {
     console.error('Error signing in:', error);
     throw error;
