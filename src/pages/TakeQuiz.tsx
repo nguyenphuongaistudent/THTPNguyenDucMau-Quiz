@@ -364,23 +364,26 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                       )}>
                         {String.fromCharCode(65 + index)}
                       </div>
-                      <span className={cn(
-                        "text-lg font-medium transition-colors flex-1 min-w-0",
+                      <div className={cn(
+                        "text-lg font-medium transition-colors flex-1 min-w-0 markdown-body",
                         answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
-                      )}>
-                        {option}
-                      </span>
+                      )}
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(option) }}
+                      />
                     </button>
                   ))
                 ) : (
                   <div className="space-y-4">
                     {['a', 'b', 'c', 'd'].map((label, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-stone-100 bg-stone-50/30 gap-4">
-                        <div className="flex items-center gap-4 flex-grow min-w-0">
-                          <span className="font-bold text-emerald-600 w-6 shrink-0">{label}.</span>
-                          <span className="text-stone-700 font-medium">{currentQuestion.options[index]}</span>
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-start justify-between p-5 rounded-2xl border border-stone-100 bg-stone-50/30 gap-4">
+                        <div className="flex items-start gap-4 flex-grow min-w-0">
+                          <span className="font-bold text-emerald-600 w-6 shrink-0 mt-1">{label}.</span>
+                          <div 
+                            className="text-stone-700 font-medium flex-1 markdown-body"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.options[index]) }}
+                          />
                         </div>
-                        <div className="flex items-center gap-6 bg-white px-6 py-2 rounded-xl border border-stone-200 shadow-sm">
+                        <div className="flex items-center gap-6 bg-white px-6 py-3 rounded-xl border border-stone-200 shadow-sm shrink-0">
                           <label className="flex items-center gap-2 cursor-pointer group">
                             <input
                               type="radio"

@@ -762,16 +762,20 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                                   onChange={() => updateQuestion(qIndex, 'correctOptionIndex', oIndex)}
                                   className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
                                 />
-                                <input
-                                  type="text"
-                                  value={opt}
-                                  onChange={(e) => updateOption(qIndex, oIndex, e.target.value)}
-                                  className={cn(
-                                    "flex-grow px-4 py-2 bg-white border rounded-lg focus:outline-none transition-all",
-                                    q.correctOptionIndex === oIndex ? "border-emerald-500 ring-1 ring-emerald-500/20" : "border-stone-200"
-                                  )}
-                                  placeholder={`Lựa chọn ${oIndex + 1}`}
-                                />
+                                <div className="flex-grow bg-white rounded-lg overflow-hidden border border-stone-200">
+                                  <ReactQuill
+                                    theme="snow"
+                                    value={opt || ''}
+                                    onChange={(val) => updateOption(qIndex, oIndex, val)}
+                                    modules={{
+                                      toolbar: [
+                                        ['bold', 'italic', 'underline'],
+                                        ['clean']
+                                      ],
+                                    }}
+                                    placeholder={`Lựa chọn ${oIndex + 1}`}
+                                  />
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -779,18 +783,25 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                           <div className="space-y-4">
                             <p className="text-xs font-bold text-stone-400 uppercase">Các ý (a, b, c, d) - Chọn Đúng hoặc Sai</p>
                             {['a', 'b', 'c', 'd'].map((label, oIndex) => (
-                              <div key={oIndex} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-white border border-stone-100 rounded-xl">
-                                <div className="flex items-center gap-3 flex-grow">
-                                  <span className="font-bold text-emerald-600 w-6">{label}.</span>
-                                  <input
-                                    type="text"
-                                    value={q.options?.[oIndex] || ''}
-                                    onChange={(e) => updateOption(qIndex, oIndex, e.target.value)}
-                                    className="flex-grow px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-500 transition-all"
-                                    placeholder={`Nội dung ý ${label}...`}
-                                  />
+                              <div key={oIndex} className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 bg-white border border-stone-100 rounded-xl">
+                                <div className="flex items-start gap-3 flex-grow">
+                                  <span className="font-bold text-emerald-600 w-6 mt-2">{label}.</span>
+                                  <div className="flex-grow bg-stone-50 rounded-lg overflow-hidden border border-stone-200">
+                                    <ReactQuill
+                                      theme="snow"
+                                      value={q.options?.[oIndex] || ''}
+                                      onChange={(val) => updateOption(qIndex, oIndex, val)}
+                                      modules={{
+                                        toolbar: [
+                                          ['bold', 'italic', 'underline'],
+                                          ['clean']
+                                        ],
+                                      }}
+                                      placeholder={`Nội dung ý ${label}...`}
+                                    />
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-6 bg-stone-100 px-4 py-2 rounded-lg">
+                                <div className="flex items-center gap-6 bg-stone-100 px-4 py-2 rounded-lg mt-2 sm:mt-0">
                                   <label className="flex items-center gap-2 cursor-pointer group">
                                     <input
                                       type="radio"

@@ -25,10 +25,10 @@
 }
 
 .markdown-body {
-  overflow-wrap: normal;
-  word-wrap: normal;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
   word-break: normal;
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 
 .markdown-body table {

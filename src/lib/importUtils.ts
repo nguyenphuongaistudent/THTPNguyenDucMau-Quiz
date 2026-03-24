@@ -135,14 +135,15 @@ export const parseWord = async (arrayBuffer: ArrayBuffer): Promise<ImportedQuiz>
           continue;
         }
         
-        // If it's just text and we have a current question, append to text or explanation
+        // If it's just text and we have a current question, append to text or the last option
         if (currentQuestion && !line.match(/^(Answer|Đáp án|Title|Subject|Topic|Duration)/i)) {
           if (currentQuestion.options && currentQuestion.options.length > 0) {
-            // Probably explanation or continuation of last option
-            // For simplicity, we'll just ignore for now or append to explanation
-            currentQuestion.explanation = (currentQuestion.explanation || '') + ' ' + line;
+            // Continuation of last option
+            const lastIdx = currentQuestion.options.length - 1;
+            currentQuestion.options[lastIdx] = currentQuestion.options[lastIdx] + '<br>' + line;
           } else {
-            currentQuestion.text = (currentQuestion.text || '') + ' ' + line;
+            // Continuation of question text
+            currentQuestion.text = (currentQuestion.text || '') + '<br>' + line;
           }
         }
       }
@@ -211,10 +212,11 @@ Topic: regular
 Duration: 45
 ---
 1. 1 + 1 bằng mấy?
-A. 1
-B. 2
-C. 3
-D. 4
+A. Lựa chọn 1
+B. Lựa chọn 2
+(Có thể viết nhiều dòng)
+C. Lựa chọn 3
+D. Lựa chọn 4
 Answer: B
 
 Type: true_false
