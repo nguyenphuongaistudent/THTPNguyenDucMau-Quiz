@@ -83,6 +83,7 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
   };
 
   const canTakeQuiz = (quiz: Quiz) => {
+    if (user.role === 'admin') return true;
     return quiz.isActive && isRoleAllowed(quiz) && !isAttemptLimitReached(quiz);
   };
 

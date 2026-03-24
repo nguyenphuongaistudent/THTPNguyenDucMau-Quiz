@@ -42,7 +42,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         if (foundQuiz) {
           const quizData = { id: foundQuiz.id, ...foundQuiz.data() } as Quiz;
           
-          if (quizData.maxAttempts && quizData.maxAttempts > 0 && attemptCount >= quizData.maxAttempts) {
+          if (user.role !== 'admin' && quizData.maxAttempts && quizData.maxAttempts > 0 && attemptCount >= quizData.maxAttempts) {
             setAttemptError(`Bạn đã hết lượt làm bài thi này (Tối đa: ${quizData.maxAttempts} lượt).`);
             setLoading(false);
             return;
@@ -102,7 +102,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
 
           setQuestions(shuffledQuestions);
           setAnswers(new Array(shuffledQuestions.length).fill(-1).map((_, i) => 
-            shuffledQuestions[i].type === 'true_false' ? [true, true, true, true] : -1
+            shuffledQuestions[i].type === 'true_false' ? [null, null, null, null] : -1
           ));
         }
       } catch (error) {
@@ -203,7 +203,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
 
   const handleTFAnswerSelect = (subIndex: number, value: boolean) => {
     const newAnswers = [...answers];
-    const currentTFAnswers = [...(newAnswers[currentQuestionIndex] as boolean[] || [true, true, true, true])];
+    const currentTFAnswers = [...(newAnswers[currentQuestionIndex] as (boolean | null)[] || [null, null, null, null])];
     currentTFAnswers[subIndex] = value;
     newAnswers[currentQuestionIndex] = currentTFAnswers;
     setAnswers(newAnswers);
@@ -339,7 +339,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm' : 'Phần 2: Đúng/Sai'} - Câu {currentQuestionIndex + 1} / {questions.length}
               </p>
               <h3 
-                className="text-2xl font-medium text-stone-900 mb-10 leading-relaxed markdown-body"
+                className="text-2xl sm:text-3xl font-serif font-medium text-stone-900 mb-10 leading-relaxed markdown-body"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.text) }}
               />
 
@@ -365,7 +365,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         {String.fromCharCode(65 + index)}
                       </div>
                       <div className={cn(
-                        "text-lg font-medium transition-colors flex-1 min-w-0",
+                        "text-base sm:text-lg font-medium transition-colors flex-1 min-w-0",
                         currentQuestion.type === 'true_false' && "markdown-body",
                         answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
                       )}
@@ -380,7 +380,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         <div className="flex items-start gap-4 flex-grow min-w-0">
                           <span className="font-bold text-emerald-600 w-6 shrink-0 mt-1">{label}.</span>
                           <div 
-                            className="text-stone-700 font-medium flex-1 markdown-body"
+                            className="text-stone-700 text-sm sm:text-lg font-medium flex-1 markdown-body leading-relaxed prose prose-stone max-w-none"
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.options[index]) }}
                           />
                         </div>
@@ -463,7 +463,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                           "w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold transition-all",
                           currentQuestionIndex === q.originalIndex 
                             ? "bg-stone-900 text-white shadow-md scale-110 z-10" 
-                            : answers[q.originalIndex] !== -1 
+                            : answers[q.originalIndex] !== -1 && (!Array.isArray(answers[q.originalIndex]) || (answers[q.originalIndex] as (boolean | null)[]).some(a => a !== null))
                               ? "bg-emerald-500 text-white shadow-sm" 
                               : "bg-stone-100 text-stone-500 hover:bg-stone-200"
                         )}
@@ -487,7 +487,9 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                           "w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold transition-all",
                           currentQuestionIndex === q.originalIndex 
                             ? "bg-stone-900 text-white shadow-md scale-110 z-10" 
-                            : "bg-emerald-500 text-white shadow-sm"
+                            : (answers[q.originalIndex] as (boolean | null)[]).some(a => a !== null)
+                              ? "bg-emerald-500 text-white shadow-sm"
+                              : "bg-stone-100 text-stone-500 hover:bg-stone-200"
                         )}
                       >
                         {q.originalIndex + 1}

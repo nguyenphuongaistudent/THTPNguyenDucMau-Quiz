@@ -84,7 +84,7 @@ const QuestionEditor = memo(({
                   onUpdate(qIndex, 'type', type);
                   onUpdate(qIndex, 'options', ['', '', '', '']);
                   onUpdate(qIndex, 'correctOptionIndex', type === 'multiple_choice' ? 0 : undefined);
-                  onUpdate(qIndex, 'correctAnswers', type === 'true_false' ? [true, true, true, true] : undefined);
+                  onUpdate(qIndex, 'correctAnswers', type === 'true_false' ? [null, null, null, null] : undefined);
                 }}
                 className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:border-emerald-500 transition-all"
               >
@@ -164,7 +164,7 @@ const QuestionEditor = memo(({
                         name={`q-${qIndex}-o-${oIndex}`}
                         checked={q.correctAnswers?.[oIndex] === true}
                         onChange={() => {
-                          const newCorrect = [...(q.correctAnswers || [true, true, true, true])];
+                          const newCorrect = [...(q.correctAnswers || [null, null, null, null])];
                           newCorrect[oIndex] = true;
                           onUpdate(qIndex, 'correctAnswers', newCorrect);
                         }}
@@ -178,7 +178,7 @@ const QuestionEditor = memo(({
                         name={`q-${qIndex}-o-${oIndex}`}
                         checked={q.correctAnswers?.[oIndex] === false}
                         onChange={() => {
-                          const newCorrect = [...(q.correctAnswers || [true, true, true, true])];
+                          const newCorrect = [...(q.correctAnswers || [null, null, null, null])];
                           newCorrect[oIndex] = false;
                           onUpdate(qIndex, 'correctAnswers', newCorrect);
                         }}
@@ -286,7 +286,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       text: '',
       options: ['', '', '', ''],
       correctOptionIndex: 0,
-      correctAnswers: [true, true, true, true],
+      correctAnswers: [null, null, null, null],
       explanation: '',
       order: 0
     }]);
@@ -311,7 +311,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         type: q.type || 'multiple_choice',
         options: q.options || ['', '', '', ''],
         correctOptionIndex: q.correctOptionIndex ?? 0,
-        correctAnswers: q.correctAnswers || [true, true, true, true],
+        correctAnswers: q.correctAnswers || [null, null, null, null],
         explanation: q.explanation || '',
         order: q.order ?? index
       };
@@ -412,9 +412,10 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         return q.options && q.options.length >= 2 && q.options.every(opt => opt && opt.trim() !== '');
       } else if (q.type === 'true_false') {
         // For True/False, we always have 4 options in the UI.
-        // We should allow some to be empty if the user doesn't want all 4 statements.
-        // But we should require at least one statement to be filled.
-        return q.options && q.options.length === 4 && q.options.some(opt => opt && opt.trim() !== '');
+        // We require all 4 options to be filled and all 4 answers to be selected.
+        const allOptionsFilled = q.options && q.options.length === 4 && q.options.every(opt => opt && opt.trim() !== '' && opt !== '<p><br></p>');
+        const allAnswersSelected = q.correctAnswers && q.correctAnswers.length === 4 && q.correctAnswers.every(ans => ans !== null);
+        return allOptionsFilled && allAnswersSelected;
       }
       return false;
     });
@@ -493,7 +494,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
             // Ensure correctAnswers is exactly 4 booleans
             let ca = q.correctAnswers;
             if (!Array.isArray(ca)) ca = [true, true, true, true];
-            qData.correctAnswers = ca.slice(0, 4).map(v => !!v);
+            qData.correctAnswers = ca.slice(0, 4).map(v => v === null ? true : !!v);
             while (qData.correctAnswers.length < 4) qData.correctAnswers.push(true);
             
             // Ensure options is exactly 4 strings
@@ -520,7 +521,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
             // Ensure correctAnswers is exactly 4 booleans
             let ca = q.correctAnswers;
             if (!Array.isArray(ca)) ca = [true, true, true, true];
-            qData.correctAnswers = ca.slice(0, 4).map(v => !!v);
+            qData.correctAnswers = ca.slice(0, 4).map(v => v === null ? true : !!v);
             while (qData.correctAnswers.length < 4) qData.correctAnswers.push(true);
             
             // Ensure options is exactly 4 strings
@@ -582,7 +583,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       text: '',
       options: ['', '', '', ''],
       correctOptionIndex: 0,
-      correctAnswers: [true, true, true, true],
+      correctAnswers: [null, null, null, null],
       explanation: '',
       order: prev.length
     }]);
