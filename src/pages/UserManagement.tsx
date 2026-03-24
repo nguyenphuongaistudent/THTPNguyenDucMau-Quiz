@@ -96,7 +96,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         let skipped = 0;
         for (const row of data) {
           const email = row.Email || row.email || row['Email'] || row['email'];
-          const username = row.Username || row.username || row['Tên đăng nhập'] || email?.split('@')[0];
+          const username = row['Tên đăng nhập'] || row.Username || row.username || email?.split('@')[0];
+          const password = row['Mật khẩu'] || row.Password || row.password || '123456';
           
           if (email) {
             // Check if email or username already exists
@@ -109,8 +110,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                 email: email,
                 username: username || email.split('@')[0],
                 displayName: row.DisplayName || row.name || row['Họ và tên'] || '',
-                school: row.School || row.school || row['Trường'] || '',
-                class: row.Class || row.class || row['Lớp'] || '',
+                school: row.School || row.school || row['Trường'] || 'Trường Tự do',
+                class: row.Class || row.class || row['Lớp'] || 'Tự do',
                 role: (row.Role || row.role || row['Vai trò'] || 'student').toLowerCase(),
                 isApproved: true,
                 createdAt: serverTimestamp(),
@@ -138,6 +139,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     const template = [
       {
         'Email': 'student1@example.com',
+        'Tên đăng nhập': 'student1',
+        'Mật khẩu': '123456',
         'Họ và tên': 'Nguyễn Văn A',
         'Trường': 'THPT Chuyên Hà Nội',
         'Lớp': '12A1',
@@ -145,6 +148,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       },
       {
         'Email': 'teacher1@example.com',
+        'Tên đăng nhập': 'teacher1',
+        'Mật khẩu': '123456',
         'Họ và tên': 'Trần Thị B',
         'Trường': 'THPT Chuyên Hà Nội',
         'Lớp': 'Toán',
@@ -177,7 +182,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmail || !newPassword || !newUsername) return;
+    if (!newEmail || !newPassword || !newUsername || !newDisplayName) {
+      alert('Vui lòng điền đầy đủ các thông tin bắt buộc (Email, Tên đăng nhập, Mật khẩu, Họ và tên).');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -193,7 +201,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         return;
       }
 
-      await signUpWithEmail(newEmail, newPassword, newDisplayName, newUsername, newSchool, newClass);
+      const finalSchool = newSchool.trim() || 'Trường Tự do';
+      const finalClass = newClass.trim() || 'Tự do';
+
+      await signUpWithEmail(newEmail, newPassword, newDisplayName, newUsername, finalSchool, finalClass);
       
       setNewEmail('');
       setNewUsername('');

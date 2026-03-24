@@ -77,19 +77,30 @@ export const signInWithGoogle = async () => {
       let preAssignedRole: UserRole = isAdminEmail ? 'admin' : 'student';
       let preAssignedDocId: string | null = null;
       let isApproved = isAdminEmail;
+      let preAssignedData: any = {};
 
       if (!querySnapshot.empty) {
         const preDoc = querySnapshot.docs[0];
-        preAssignedRole = preDoc.data().role as UserRole;
+        preAssignedData = preDoc.data();
+        preAssignedRole = preAssignedData.role as UserRole;
         preAssignedDocId = preDoc.id;
         isApproved = true; // Pre-assigned by admin/teacher
       }
 
       try {
+        let username = preAssignedData.username || user.email?.split('@')[0] || `user_${Date.now()}`;
+        const isUnique = await checkUsernameUnique(username);
+        if (!isUnique && !preAssignedData.username) {
+          username = `${username}_${Math.random().toString(36).substr(2, 4)}`;
+        }
+
         await setDoc(doc(db, 'users', user.uid), {
           uid: user.uid,
           email: user.email,
-          displayName: user.displayName,
+          username: username,
+          displayName: user.displayName || preAssignedData.displayName,
+          school: preAssignedData.school || 'Trường Tự do',
+          class: preAssignedData.class || 'Tự do',
           role: preAssignedRole,
           isApproved: isApproved,
           createdAt: serverTimestamp()
@@ -124,6 +135,14 @@ export const logout = () => signOut(auth);
 
 export const signUpWithEmail = async (email: string, pass: string, name: string, username?: string, school?: string, className?: string) => {
   try {
+    // Check username uniqueness if provided
+    if (username) {
+      const isUnique = await checkUsernameUnique(username);
+      if (!isUnique) {
+        throw new Error('Tên đăng nhập này đã tồn tại.');
+      }
+    }
+
     const result = await createUserWithEmailAndPassword(auth, email, pass);
     const user = result.user;
     
@@ -138,10 +157,12 @@ export const signUpWithEmail = async (email: string, pass: string, name: string,
     let preAssignedRole: UserRole = isAdminEmail ? 'admin' : 'student';
     let preAssignedDocId: string | null = null;
     let isApproved = isAdminEmail;
+    let preAssignedData: any = {};
 
     if (!querySnapshot.empty) {
       const preDoc = querySnapshot.docs[0];
-      preAssignedRole = preDoc.data().role as UserRole;
+      preAssignedData = preDoc.data();
+      preAssignedRole = preAssignedData.role as UserRole;
       preAssignedDocId = preDoc.id;
       isApproved = true;
     }
@@ -150,10 +171,10 @@ export const signUpWithEmail = async (email: string, pass: string, name: string,
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         email: user.email,
-        username: username || user.email.split('@')[0],
-        displayName: name,
-        school: school || '',
-        class: className || '',
+        username: username || preAssignedData.username || user.email.split('@')[0],
+        displayName: name || preAssignedData.displayName,
+        school: school || preAssignedData.school || 'Trường Tự do',
+        class: className || preAssignedData.class || 'Tự do',
         role: preAssignedRole,
         isApproved: isApproved,
         createdAt: serverTimestamp()

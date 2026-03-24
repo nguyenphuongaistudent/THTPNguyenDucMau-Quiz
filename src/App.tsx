@@ -65,6 +65,9 @@ export default function App() {
             await setDoc(doc(db, 'users', firebaseUser.uid), {
               ...importedData,
               uid: firebaseUser.uid,
+              username: importedData.username || firebaseUser.email.split('@')[0],
+              school: importedData.school || 'Trường Tự do',
+              class: importedData.class || 'Tự do',
               updatedAt: serverTimestamp()
             });
             // Delete the old imported doc if it wasn't using the UID as ID
@@ -171,7 +174,14 @@ export default function App() {
       if (password.length < 6) {
         throw new Error('Mật khẩu phải có ít nhất 6 ký tự.');
       }
-      await signUpWithEmail(email, password, displayName, username, school, className);
+      if (!username || !displayName) {
+        throw new Error('Vui lòng điền đầy đủ các thông tin bắt buộc.');
+      }
+      
+      const finalSchool = school.trim() || 'Trường Tự do';
+      const finalClass = className.trim() || 'Tự do';
+      
+      await signUpWithEmail(email, password, displayName, username, finalSchool, finalClass);
     } catch (error: any) {
       console.error('Email sign up failed:', error);
       let message = 'Đăng ký thất bại. Vui lòng thử lại.';
