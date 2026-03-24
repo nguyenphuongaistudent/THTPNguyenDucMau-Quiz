@@ -94,13 +94,54 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
 
         let count = 0;
         let skipped = 0;
+        let missingInfo = 0;
+        let alreadyExists = 0;
+
         for (const row of data) {
-          const email = (row['Email'] || row.Email || row.email || '').toString().trim();
-          const username = (row['Tên đăng nhập'] || row.Username || row.username || email.split('@')[0] || '').toString().trim();
-          const displayName = (row['Họ và tên'] || row.DisplayName || row.name || '').toString().trim();
-          const school = (row['Trường'] || row.School || row.school || 'Trường Tự do').toString().trim();
-          const className = (row['Lớp'] || row.Class || row.class || 'Tự do').toString().trim();
-          const role = (row['Vai trò'] || row.Role || row.role || 'student').toString().trim().toLowerCase();
+          // Normalize keys: trim and lowercase
+          const normalizedRow: any = {};
+          Object.keys(row).forEach(key => {
+            normalizedRow[key.trim().toLowerCase()] = row[key];
+          });
+
+          const email = (
+            normalizedRow['email'] || 
+            normalizedRow['email address'] || 
+            normalizedRow['địa chỉ email'] || 
+            ''
+          ).toString().trim();
+
+          const displayName = (
+            normalizedRow['họ và tên'] || 
+            normalizedRow['tên'] || 
+            normalizedRow['display name'] || 
+            normalizedRow['name'] || 
+            ''
+          ).toString().trim();
+
+          const username = (
+            normalizedRow['tên đăng nhập'] || 
+            normalizedRow['username'] || 
+            (email ? email.split('@')[0] : '')
+          ).toString().trim();
+
+          const school = (
+            normalizedRow['trường'] || 
+            normalizedRow['school'] || 
+            'Trường Tự do'
+          ).toString().trim();
+
+          const className = (
+            normalizedRow['lớp'] || 
+            normalizedRow['class'] || 
+            'Tự do'
+          ).toString().trim();
+
+          const role = (
+            normalizedRow['vai trò'] || 
+            normalizedRow['role'] || 
+            'student'
+          ).toString().trim().toLowerCase();
           
           if (email && displayName) {
             // Check if email or username already exists
@@ -122,13 +163,20 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
               });
               count++;
             } else {
+              alreadyExists++;
               skipped++;
             }
           } else {
+            missingInfo++;
             skipped++;
           }
         }
-        alert(`Đã nhập thành công ${count} thành viên.${skipped > 0 ? ` Bỏ qua ${skipped} thành viên đã tồn tại.` : ''}`);
+        
+        let message = `Đã nhập thành công ${count} thành viên.`;
+        if (alreadyExists > 0) message += `\n- Bỏ qua ${alreadyExists} thành viên đã tồn tại.`;
+        if (missingInfo > 0) message += `\n- Bỏ qua ${missingInfo} dòng thiếu thông tin bắt buộc (Email, Họ và tên).`;
+        
+        alert(message);
       };
       reader.readAsBinaryString(file);
     } catch (error) {
