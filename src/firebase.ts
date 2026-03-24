@@ -196,7 +196,8 @@ export const signUpWithEmail = async (email: string, pass: string, name: string,
 
 export const signInWithUsernameOrEmail = async (loginId: string, pass: string) => {
   try {
-    let email = loginId.trim();
+    const trimmedLoginId = loginId.trim();
+    let email = trimmedLoginId;
     let firestoreUser: any = null;
     let firestoreDocId: string | null = null;
     
@@ -204,18 +205,19 @@ export const signInWithUsernameOrEmail = async (loginId: string, pass: string) =
     const usersRef = collection(db, 'users');
     
     // Try exact match first
-    let q = loginId.includes('@') 
-      ? query(usersRef, where('email', '==', loginId.trim()))
-      : query(usersRef, where('username', '==', loginId.trim()));
+    let q = trimmedLoginId.includes('@') 
+      ? query(usersRef, where('email', '==', trimmedLoginId))
+      : query(usersRef, where('username', '==', trimmedLoginId));
     
     let querySnapshot = await getDocs(q);
     
     // If not found, try case-insensitive for email/username if they were stored differently
     if (querySnapshot.empty) {
-      if (loginId.includes('@')) {
-        q = query(usersRef, where('email', '==', loginId.trim().toLowerCase()));
+      const lowerLoginId = trimmedLoginId.toLowerCase();
+      if (trimmedLoginId.includes('@')) {
+        q = query(usersRef, where('email', '==', lowerLoginId));
       } else {
-        q = query(usersRef, where('username', '==', loginId.trim().toLowerCase()));
+        q = query(usersRef, where('username', '==', lowerLoginId));
       }
       querySnapshot = await getDocs(q);
     }
@@ -224,8 +226,10 @@ export const signInWithUsernameOrEmail = async (loginId: string, pass: string) =
       firestoreUser = querySnapshot.docs[0].data();
       firestoreDocId = querySnapshot.docs[0].id;
       email = firestoreUser.email;
-    } else if (!loginId.includes('@')) {
-      throw new Error('Tên đăng nhập không tồn tại.');
+    } else if (!trimmedLoginId.includes('@')) {
+      const error: any = new Error('Tên đăng nhập không tồn tại.');
+      error.code = 'auth/user-not-found';
+      throw error;
     }
     
     try {
@@ -265,18 +269,24 @@ export const signInWithUsernameOrEmail = async (loginId: string, pass: string) =
         } catch (createError: any) {
           // If user already exists in Auth but we got invalid-credential, it's actually a wrong password
           if (createError.code === 'auth/email-already-in-use') {
-             throw new Error('Mật khẩu không chính xác.');
+             const error: any = new Error('Mật khẩu không chính xác.');
+             error.code = 'auth/wrong-password';
+             throw error;
           }
           throw createError;
         }
       }
       
-      // Map common errors to friendly messages
+      // Map common errors to friendly messages with codes
       if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
-        throw new Error('Mật khẩu không chính xác.');
+        const error: any = new Error('Mật khẩu không chính xác.');
+        error.code = 'auth/wrong-password';
+        throw error;
       }
       if (authError.code === 'auth/user-not-found') {
-        throw new Error('Tài khoản không tồn tại.');
+        const error: any = new Error('Tài khoản không tồn tại.');
+        error.code = 'auth/user-not-found';
+        throw error;
       }
       
       throw authError;

@@ -155,7 +155,7 @@ export default function App() {
       await signInWithUsernameOrEmail(email, password);
     } catch (error: any) {
       console.error('Email sign in failed:', error);
-      let message = 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.';
+      let message = error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.';
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         message = 'Email hoặc mật khẩu không chính xác.';
       } else if (error.code === 'auth/too-many-requests') {

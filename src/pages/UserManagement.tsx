@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy, setDoc, doc, deleteDoc, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, setDoc, doc, deleteDoc, serverTimestamp, addDoc, where, getDocs, updateDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { User, UserRole } from '../types';
 import * as XLSX from 'xlsx';
@@ -123,7 +123,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             normalizedRow['tên đăng nhập'] || 
             normalizedRow['username'] || 
             (email ? email.split('@')[0] : '')
-          ).toString().trim();
+          ).toString().trim().toLowerCase();
 
           const password = (
             normalizedRow['mật khẩu'] || 
@@ -170,8 +170,38 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
               });
               count++;
             } else {
-              alreadyExists++;
-              skipped++;
+              // Update existing user to ensure data consistency (casing, password for login)
+              let existingUid = '';
+              const usersRef = collection(db, 'users');
+              const qEmail = query(usersRef, where('email', '==', email));
+              const emailSnap = await getDocs(qEmail);
+              
+              if (!emailSnap.empty) {
+                existingUid = emailSnap.docs[0].id;
+              } else {
+                const qUser = query(usersRef, where('username', '==', username));
+                const userSnap = await getDocs(qUser);
+                if (!userSnap.empty) {
+                  existingUid = userSnap.docs[0].id;
+                }
+              }
+
+              if (existingUid) {
+                await updateDoc(doc(db, 'users', existingUid), {
+                  email: email,
+                  username: username,
+                  password: password,
+                  displayName: displayName,
+                  school: school,
+                  class: className,
+                  role: role,
+                  updatedAt: serverTimestamp()
+                });
+                count++;
+              } else {
+                alreadyExists++;
+                skipped++;
+              }
             }
           } else {
             missingInfo++;
