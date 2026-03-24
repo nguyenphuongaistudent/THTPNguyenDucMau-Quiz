@@ -29,6 +29,7 @@
   word-wrap: break-word;
   word-break: normal;
   overflow-x: hidden;
+  font-family: inherit;
 }
 
 .markdown-body table {
@@ -52,4 +53,9 @@
   height: auto;
   border-radius: 0.5rem;
   margin: 1rem 0;
+}
+
+.text-justify-all {
+  text-align: justify;
+  text-justify: inter-word;
 }
