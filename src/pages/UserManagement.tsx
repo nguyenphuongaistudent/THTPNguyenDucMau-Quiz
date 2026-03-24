@@ -95,24 +95,27 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         let count = 0;
         let skipped = 0;
         for (const row of data) {
-          const email = row.Email || row.email || row['Email'] || row['email'];
-          const username = row['Tên đăng nhập'] || row.Username || row.username || email?.split('@')[0];
-          const password = row['Mật khẩu'] || row.Password || row.password || '123456';
+          const email = (row['Email'] || row.Email || row.email || '').toString().trim();
+          const username = (row['Tên đăng nhập'] || row.Username || row.username || email.split('@')[0] || '').toString().trim();
+          const displayName = (row['Họ và tên'] || row.DisplayName || row.name || '').toString().trim();
+          const school = (row['Trường'] || row.School || row.school || 'Trường Tự do').toString().trim();
+          const className = (row['Lớp'] || row.Class || row.class || 'Tự do').toString().trim();
+          const role = (row['Vai trò'] || row.Role || row.role || 'student').toString().trim().toLowerCase();
           
-          if (email) {
+          if (email && displayName) {
             // Check if email or username already exists
             const emailUnique = await checkEmailUnique(email);
-            const usernameUnique = username ? await checkUsernameUnique(username) : true;
+            const usernameUnique = await checkUsernameUnique(username);
             
             if (emailUnique && usernameUnique) {
               const uid = `pre_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
               await setDoc(doc(db, 'users', uid), {
                 email: email,
-                username: username || email.split('@')[0],
-                displayName: row.DisplayName || row.name || row['Họ và tên'] || '',
-                school: row.School || row.school || row['Trường'] || 'Trường Tự do',
-                class: row.Class || row.class || row['Lớp'] || 'Tự do',
-                role: (row.Role || row.role || row['Vai trò'] || 'student').toLowerCase(),
+                username: username,
+                displayName: displayName,
+                school: school,
+                class: className,
+                role: role,
                 isApproved: true,
                 createdAt: serverTimestamp(),
                 uid: uid
@@ -121,6 +124,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             } else {
               skipped++;
             }
+          } else {
+            skipped++;
           }
         }
         alert(`Đã nhập thành công ${count} thành viên.${skipped > 0 ? ` Bỏ qua ${skipped} thành viên đã tồn tại.` : ''}`);
