@@ -40,12 +40,14 @@ export default function ImportQuizModal({ onClose, onImport }: ImportQuizModalPr
       } else if (extension === 'docx') {
         const arrayBuffer = await file.arrayBuffer();
         imported = await parseWord(arrayBuffer);
+      } else if (extension === 'doc') {
+        throw new Error('Định dạng .doc không được hỗ trợ. Vui lòng lưu file dưới dạng .docx (Word 2007+) và thử lại.');
       } else {
         throw new Error('Định dạng file không được hỗ trợ. Vui lòng chọn .json hoặc .docx');
       }
 
       if (imported.questions.length === 0) {
-        throw new Error('Không tìm thấy câu hỏi nào trong file.');
+        throw new Error('Không tìm thấy câu hỏi nào trong file. Vui lòng đảm bảo câu hỏi bắt đầu bằng số (ví dụ: "1." hoặc "Câu 1.") và các phương án bắt đầu bằng chữ cái (ví dụ: "A.").');
       }
 
       setSuccess(imported);
