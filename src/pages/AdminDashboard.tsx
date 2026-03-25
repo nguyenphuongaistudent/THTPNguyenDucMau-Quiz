@@ -229,8 +229,6 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   const [filterSubject, setFilterSubject] = useState<string>('all');
   const [filterTopic, setFilterTopic] = useState<string>('all');
   const [expandedQuestions, setExpandedQuestions] = useState<Record<number, boolean>>({ 0: true });
-  const [regEnabled, setRegEnabled] = useState(true);
-  const [updatingReg, setUpdatingReg] = useState(false);
 
   const subjects = ['Toán', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh', 'Lịch sử', 'Địa lý', 'GDCD', 'Ngữ văn', 'Tin học'];
   const topics = [
@@ -255,35 +253,6 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 
     return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-    const settingsRef = doc(db, 'settings', 'registration');
-    const unsubscribe = onSnapshot(settingsRef, (doc) => {
-      if (doc.exists()) {
-        setRegEnabled(doc.data().enabled ?? true);
-      }
-    }, (error) => {
-      console.error("Error listening to settings:", error);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const toggleRegistration = async () => {
-    if (user.role !== 'admin') return;
-    setUpdatingReg(true);
-    try {
-      await updateDoc(doc(db, 'settings', 'registration'), {
-        enabled: !regEnabled,
-        updatedAt: serverTimestamp(),
-        updatedBy: user.uid
-      });
-    } catch (error) {
-      console.error('Error updating registration setting:', error);
-      alert('Không thể cập nhật cấu hình đăng ký.');
-    } finally {
-      setUpdatingReg(false);
-    }
-  };
 
   const filteredQuizzes = quizzes.filter(quiz => {
     const matchSubject = filterSubject === 'all' || quiz.subject === filterSubject;
@@ -667,26 +636,6 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         </div>
         
         <div className="flex items-center gap-4">
-          {user.role === 'admin' && (
-            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-stone-200 shadow-sm">
-              <span className="text-sm font-medium text-stone-600">Cho phép đăng ký:</span>
-              <button
-                onClick={toggleRegistration}
-                disabled={updatingReg}
-                className={cn(
-                  "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
-                  regEnabled ? "bg-emerald-500" : "bg-stone-300"
-                )}
-              >
-                <span
-                  className={cn(
-                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                    regEnabled ? "translate-x-6" : "translate-x-1"
-                  )}
-                />
-              </button>
-            </div>
-          )}
           <button
             onClick={() => setIsImportModalOpen(true)}
             className="flex items-center justify-center gap-2 bg-stone-100 text-stone-600 py-3 px-6 rounded-xl hover:bg-stone-200 transition-all font-medium border border-stone-200"

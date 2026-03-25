@@ -42,6 +42,38 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const [editForm, setEditForm] = useState({ displayName: '', school: '', class: '', username: '' });
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [regEnabled, setRegEnabled] = useState(true);
+  const [updatingReg, setUpdatingReg] = useState(false);
+
+  useEffect(() => {
+    const settingsRef = doc(db, 'settings', 'registration');
+    const unsubscribe = onSnapshot(settingsRef, (doc) => {
+      if (doc.exists()) {
+        setRegEnabled(doc.data().enabled ?? true);
+      }
+    }, (error) => {
+      console.error("Error listening to settings:", error);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const toggleRegistration = async () => {
+    if (currentUser.role !== 'admin') return;
+    setUpdatingReg(true);
+    try {
+      await updateDoc(doc(db, 'settings', 'registration'), {
+        enabled: !regEnabled,
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUser.uid
+      });
+      toast.success(regEnabled ? 'Đã tắt chức năng đăng ký' : 'Đã bật chức năng đăng ký');
+    } catch (error) {
+      console.error('Error updating registration setting:', error);
+      toast.error('Không thể cập nhật cấu hình đăng ký.');
+    } finally {
+      setUpdatingReg(false);
+    }
+  };
 
   useEffect(() => {
     const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
@@ -518,6 +550,27 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             <UserPlus className="w-5 h-5" />
             Thêm thành viên mới
           </button>
+          
+          {currentUser.role === 'admin' && (
+            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-stone-200 shadow-sm">
+              <span className="text-sm font-medium text-stone-600">Cho phép đăng ký:</span>
+              <button
+                onClick={toggleRegistration}
+                disabled={updatingReg}
+                className={cn(
+                  "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                  regEnabled ? "bg-emerald-500" : "bg-stone-300"
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                    regEnabled ? "translate-x-6" : "translate-x-1"
+                  )}
+                />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
