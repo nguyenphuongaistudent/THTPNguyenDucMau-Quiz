@@ -3,9 +3,11 @@ import { collection, onSnapshot, query, orderBy, setDoc, doc, deleteDoc, serverT
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { User, UserRole } from '../types';
 import * as XLSX from 'xlsx';
-import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save, FileDown, FileUp, Key, Download, ChevronUp, ChevronDown, Filter } from 'lucide-react';
+import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save, FileDown, FileUp, Key, Download, ChevronUp, ChevronDown, Filter, X, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { motion } from 'motion/react';
 import { sendPasswordReset, signUpWithEmail, checkUsernameUnique, checkEmailUnique } from '../firebase';
+import { toast } from 'sonner';
 
 interface UserManagementProps {
   currentUser: User;
@@ -20,9 +22,16 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const [deleteProgress, setDeleteProgress] = useState<{ current: number; total: number } | null>(null);
   const [sortBy, setSortBy] = useState<{ field: keyof User; direction: 'asc' | 'desc' }>({ field: 'createdAt', direction: 'desc' });
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
   
   const [isAdding, setIsAdding] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [resettingUser, setResettingUser] = useState<User | null>(null);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [isResettingEmail, setIsResettingEmail] = useState(false);
+  const [isGeneratingPass, setIsGeneratingPass] = useState(false);
+  
   const [newEmail, setNewEmail] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -253,20 +262,46 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     XLSX.writeFile(wb, "mau_import_thanh_vien.xlsx");
   };
 
-  const handleResetPassword = async (email: string) => {
+  const handleResetPassword = async (user: User) => {
     if (currentUser.role !== 'admin') {
-      alert('Chỉ quản trị viên mới có quyền reset mật khẩu.');
+      toast.error('Chỉ quản trị viên mới có quyền reset mật khẩu.');
       return;
     }
-    
-    if (window.confirm(`Gửi email khôi phục mật khẩu đến ${email}?`)) {
-      try {
-        await sendPasswordReset(email);
-        alert('Đã gửi email khôi phục mật khẩu thành công.');
-      } catch (error) {
-        console.error('Error resetting password:', error);
-        alert('Có lỗi xảy ra khi gửi email khôi phục mật khẩu.');
-      }
+    setResettingUser(user);
+    setTempPassword(null);
+  };
+
+  const handleSendResetEmail = async () => {
+    if (!resettingUser) return;
+    setIsResettingEmail(true);
+    try {
+      await sendPasswordReset(resettingUser.email);
+      toast.success('Đã gửi email khôi phục mật khẩu thành công.');
+      setResettingUser(null);
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast.error('Có lỗi xảy ra khi gửi email khôi phục mật khẩu.');
+    } finally {
+      setIsResettingEmail(false);
+    }
+  };
+
+  const handleGenerateTempPassword = async () => {
+    if (!resettingUser) return;
+    setIsGeneratingPass(true);
+    try {
+      const newPass = Math.random().toString(36).slice(-8);
+      await updateDoc(doc(db, 'users', resettingUser.uid), {
+        password: newPass,
+        updatedAt: serverTimestamp()
+      });
+      setTempPassword(newPass);
+      toast.success('Đã tạo mật khẩu tạm thời mới');
+    } catch (error) {
+      console.error('Error generating temp password:', error);
+      toast.error('Lỗi khi tạo mật khẩu mới');
+    } finally {
+      setIsGeneratingPass(false);
     }
   };
 
@@ -411,6 +446,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       field,
       direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
+    setCurrentPage(1);
   };
 
   const filteredUsers = users
@@ -418,8 +454,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       const matchesSearch = u.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            u.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            u.username?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesSchool = !filterSchool || u.school?.toLowerCase().includes(filterSchool.toLowerCase());
-      const matchesClass = !filterClass || u.class?.toLowerCase().includes(filterClass.toLowerCase());
+      const matchesSchool = !filterSchool || u.school === filterSchool;
+      const matchesClass = !filterClass || u.class === filterClass;
       return matchesSearch && matchesSchool && matchesClass;
     })
     .sort((a, b) => {
@@ -429,6 +465,12 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       if (aVal > bVal) return sortBy.direction === 'asc' ? 1 : -1;
       return 0;
     });
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const uniqueSchools = Array.from(new Set(users.map(u => u.school).filter(Boolean))).sort();
+  const uniqueClasses = Array.from(new Set(users.map(u => u.class).filter(Boolean))).sort();
 
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
@@ -496,27 +538,29 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5">
                 <School className="w-4 h-4 text-stone-400" />
-                <input
-                  type="text"
-                  placeholder="Lọc theo trường..."
+                <select
                   value={filterSchool}
-                  onChange={(e) => setFilterSchool(e.target.value)}
-                  className="bg-transparent border-none focus:ring-0 text-sm w-32"
-                />
+                  onChange={(e) => { setFilterSchool(e.target.value); setCurrentPage(1); }}
+                  className="bg-transparent border-none focus:ring-0 text-sm min-w-[120px]"
+                >
+                  <option value="">Tất cả trường</option>
+                  {uniqueSchools.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
               </div>
               <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5">
                 <BookOpen className="w-4 h-4 text-stone-400" />
-                <input
-                  type="text"
-                  placeholder="Lọc theo lớp..."
+                <select
                   value={filterClass}
-                  onChange={(e) => setFilterClass(e.target.value)}
-                  className="bg-transparent border-none focus:ring-0 text-sm w-32"
-                />
+                  onChange={(e) => { setFilterClass(e.target.value); setCurrentPage(1); }}
+                  className="bg-transparent border-none focus:ring-0 text-sm min-w-[120px]"
+                >
+                  <option value="">Tất cả lớp</option>
+                  {uniqueClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
               
               <div className="flex items-center gap-2 text-xs font-medium text-stone-400 uppercase tracking-wider ml-auto lg:ml-0">
-                <Users className="w-4 h-4" /> Tổng số: {users.length}
+                <Users className="w-4 h-4" /> Hiển thị: {paginatedUsers.length}/{filteredUsers.length}
               </div>
             </div>
           </div>
@@ -589,7 +633,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-50">
-                {filteredUsers.map((user) => (
+                {paginatedUsers.map((user) => (
                   <tr key={user.uid} className={cn("hover:bg-stone-50/30 transition-colors", selectedUsers.has(user.uid) && "bg-stone-50")}>
                     <td className="px-6 py-4">
                       <input
@@ -658,10 +702,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {currentUser.role === 'admin' && !user.uid.startsWith('pre_') && (
+                        {currentUser.role === 'admin' && (
                           <button
-                            onClick={() => handleResetPassword(user.email)}
-                            title="Reset mật khẩu"
+                            onClick={() => handleResetPassword(user)}
+                            title="Khôi phục mật khẩu"
                             className="p-2 text-stone-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                           >
                             <Key className="w-4 h-4" />
@@ -686,6 +730,59 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && totalPages > 1 && (
+          <div className="px-6 py-4 bg-stone-50/50 border-t border-stone-100 flex items-center justify-between">
+            <p className="text-sm text-stone-500">
+              Trang <span className="font-medium text-stone-900">{currentPage}</span> / {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 text-sm font-medium text-stone-600 bg-white border border-stone-200 rounded-lg hover:bg-stone-50 disabled:opacity-50 transition-colors"
+              >
+                Trước
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={cn(
+                        "w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all",
+                        currentPage === pageNum 
+                          ? "bg-stone-900 text-white shadow-md" 
+                          : "text-stone-600 hover:bg-stone-100"
+                      )}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 text-sm font-medium text-stone-600 bg-white border border-stone-200 rounded-lg hover:bg-stone-50 disabled:opacity-50 transition-colors"
+              >
+                Sau
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -911,6 +1008,101 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
               </div>
             </form>
           </div>
+        </div>
+      )}
+      {/* Password Reset Modal */}
+      {resettingUser && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={() => !isResettingEmail && !isGeneratingPass && setResettingUser(null)} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+          >
+            <div className="px-8 py-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+              <h3 className="text-xl font-serif italic font-medium text-stone-900">Khôi phục mật khẩu</h3>
+              <button onClick={() => setResettingUser(null)} className="p-2 hover:bg-stone-100 rounded-full transition-colors">
+                <X className="w-5 h-5 text-stone-400" />
+              </button>
+            </div>
+            
+            <div className="p-8 space-y-6">
+              <div className="flex items-start gap-4 p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                <div className="w-12 h-12 rounded-full bg-stone-200 flex items-center justify-center flex-shrink-0">
+                  <UserCircle className="w-6 h-6 text-stone-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-stone-900">{resettingUser.displayName || resettingUser.username}</p>
+                  <p className="text-sm text-stone-500">{resettingUser.email}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <button
+                  onClick={handleSendResetEmail}
+                  disabled={isResettingEmail || isGeneratingPass}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-4 bg-stone-900 text-white rounded-2xl font-medium hover:bg-stone-800 disabled:opacity-50 transition-all shadow-lg shadow-stone-200"
+                >
+                  {isResettingEmail ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Mail className="w-5 h-5" />
+                  )}
+                  Gửi email khôi phục mật khẩu
+                </button>
+
+                <div className="relative py-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-stone-100"></div>
+                  </div>
+                  <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-widest">
+                    <span className="bg-white px-3 text-stone-400">Hoặc</span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <button
+                    onClick={handleGenerateTempPassword}
+                    disabled={isGeneratingPass || isResettingEmail}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-4 bg-white border border-stone-200 text-stone-900 rounded-2xl font-medium hover:bg-stone-50 disabled:opacity-50 transition-all"
+                  >
+                    {isGeneratingPass ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-stone-900" />
+                    ) : (
+                      <RefreshCw className="w-5 h-5" />
+                    )}
+                    Hiển thị mật khẩu tạm thời mới
+                  </button>
+
+                  {tempPassword && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-6 bg-amber-50 border border-amber-100 rounded-2xl text-center shadow-inner"
+                    >
+                      <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-2">Mật khẩu mới của thành viên</p>
+                      <p className="text-3xl font-mono font-bold text-amber-900 tracking-[0.2em]">{tempPassword}</p>
+                      <div className="mt-4 p-3 bg-white/50 rounded-xl">
+                        <p className="text-[10px] leading-relaxed text-amber-700 font-medium">
+                          Hãy cung cấp mật khẩu này cho thành viên. <br/>
+                          Hệ thống sẽ ghi nhận mật khẩu này khi họ đăng nhập bằng Tên đăng nhập.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-8 py-6 bg-stone-50 border-t border-stone-100 flex justify-end">
+              <button
+                onClick={() => setResettingUser(null)}
+                className="px-6 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors"
+              >
+                Đóng
+              </button>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

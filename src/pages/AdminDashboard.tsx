@@ -129,7 +129,7 @@ const QuestionEditor = memo(({
                     type="text"
                     value={opt || ''}
                     onChange={(e) => onUpdateOption(qIndex, oIndex, e.target.value)}
-                    className="flex-grow px-4 py-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                    className="flex-grow min-w-0 px-4 py-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     placeholder={`Lựa chọn ${oIndex + 1}`}
                   />
                 </div>
@@ -140,9 +140,9 @@ const QuestionEditor = memo(({
               <p className="text-xs font-bold text-stone-400 uppercase">Các ý (a, b, c, d) - Chọn Đúng hoặc Sai</p>
               {['a', 'b', 'c', 'd'].map((label, oIndex) => (
                 <div key={oIndex} className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 bg-white border border-stone-100 rounded-xl">
-                  <div className="flex items-start gap-3 flex-grow">
+                  <div className="flex items-start gap-3 flex-grow min-w-0">
                     <span className="font-bold text-emerald-600 w-6 mt-2">{label}.</span>
-                    <div className="flex-grow bg-stone-50 rounded-lg overflow-hidden border border-stone-200">
+                    <div className="flex-grow min-w-0 bg-stone-50 rounded-lg overflow-hidden border border-stone-200">
                       <ReactQuill
                         theme="snow"
                         value={q.options?.[oIndex] || ''}
@@ -229,6 +229,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   const [filterSubject, setFilterSubject] = useState<string>('all');
   const [filterTopic, setFilterTopic] = useState<string>('all');
   const [expandedQuestions, setExpandedQuestions] = useState<Record<number, boolean>>({ 0: true });
+  const [regEnabled, setRegEnabled] = useState(true);
+  const [updatingReg, setUpdatingReg] = useState(false);
 
   const subjects = ['Toán', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh', 'Lịch sử', 'Địa lý', 'GDCD', 'Ngữ văn', 'Tin học'];
   const topics = [
@@ -250,6 +252,33 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const settingsRef = doc(db, 'settings', 'registration');
+    const unsubscribe = onSnapshot(settingsRef, (doc) => {
+      if (doc.exists()) {
+        setRegEnabled(doc.data().enabled ?? true);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const toggleRegistration = async () => {
+    if (user.role !== 'admin') return;
+    setUpdatingReg(true);
+    try {
+      await updateDoc(doc(db, 'settings', 'registration'), {
+        enabled: !regEnabled,
+        updatedAt: serverTimestamp(),
+        updatedBy: user.uid
+      });
+    } catch (error) {
+      console.error('Error updating registration setting:', error);
+      alert('Không thể cập nhật cấu hình đăng ký.');
+    } finally {
+      setUpdatingReg(false);
+    }
+  };
 
   const filteredQuizzes = quizzes.filter(quiz => {
     const matchSubject = filterSubject === 'all' || quiz.subject === filterSubject;
@@ -633,6 +662,26 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         </div>
         
         <div className="flex items-center gap-4">
+          {user.role === 'admin' && (
+            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-stone-200 shadow-sm">
+              <span className="text-sm font-medium text-stone-600">Cho phép đăng ký:</span>
+              <button
+                onClick={toggleRegistration}
+                disabled={updatingReg}
+                className={cn(
+                  "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                  regEnabled ? "bg-emerald-500" : "bg-stone-300"
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                    regEnabled ? "translate-x-6" : "translate-x-1"
+                  )}
+                />
+              </button>
+            </div>
+          )}
           <button
             onClick={() => setIsImportModalOpen(true)}
             className="flex items-center justify-center gap-2 bg-stone-100 text-stone-600 py-3 px-6 rounded-xl hover:bg-stone-200 transition-all font-medium border border-stone-200"

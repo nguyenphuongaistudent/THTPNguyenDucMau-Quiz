@@ -102,8 +102,8 @@ export default function ImportQuizModal({ onClose, onImport }: ImportQuizModalPr
                       <Upload className="w-8 h-8" />
                     )}
                   </div>
-                  <div>
-                    <p className="font-medium text-stone-900">
+                  <div className="min-w-0">
+                    <p className="font-medium text-stone-900 break-words">
                       {file ? file.name : 'Nhấn để chọn file hoặc kéo thả'}
                     </p>
                     <p className="text-xs text-stone-400 mt-1">Hỗ trợ định dạng .json và .docx</p>
@@ -163,10 +163,10 @@ export default function ImportQuizModal({ onClose, onImport }: ImportQuizModalPr
               <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="text-xl font-medium text-stone-900">Phân tích thành công!</h3>
-                <p className="text-stone-500 mt-2">
-                  Tìm thấy <strong>{success.questions.length}</strong> câu hỏi trong bài thi <strong>"{success.title}"</strong>.
+                <p className="text-stone-500 mt-2 break-words">
+                  Tìm thấy <strong>{success.questions.length}</strong> câu hỏi trong bài thi <strong className="break-words">"{success.title}"</strong>.
                 </p>
               </div>
 

@@ -31,6 +31,7 @@
   white-space: pre-wrap;
   font-family: inherit;
   hyphens: none;
+  max-width: 100%;
 }
 
 .markdown-body table {

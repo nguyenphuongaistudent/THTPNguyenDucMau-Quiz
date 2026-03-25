@@ -6,6 +6,7 @@ import { User as AppUser } from './types';
 import { LogIn, LogOut, BookOpen, Loader2, AlertCircle, Clock, Mail, Lock, User as UserIcon, ArrowLeft, Settings } from 'lucide-react';
 import ProfileModal from './components/ProfileModal';
 import { cn } from './lib/utils';
+import { Toaster } from 'sonner';
 
 // Pages
 import Home from './pages/Home';
@@ -38,8 +39,20 @@ export default function App() {
   const [className, setClassName] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
 
   useEffect(() => {
+    // Listen for registration setting
+    const settingsRef = doc(db, 'settings', 'registration');
+    const unsubscribeSettings = onSnapshot(settingsRef, (doc) => {
+      if (doc.exists()) {
+        setRegistrationEnabled(doc.data().enabled ?? true);
+      } else {
+        // Initialize if doesn't exist
+        setDoc(settingsRef, { enabled: true }).catch(console.error);
+      }
+    });
+
     let userUnsubscribe: (() => void) | null = null;
 
     const authUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -114,6 +127,7 @@ export default function App() {
 
     return () => {
       authUnsubscribe();
+      unsubscribeSettings();
       if (userUnsubscribe) userUnsubscribe();
     };
   }, []);
@@ -171,6 +185,10 @@ export default function App() {
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!registrationEnabled) {
+      setLoginError('Chức năng đăng ký hiện đang tạm khóa bởi Quản trị viên.');
+      return;
+    }
     setLoginError(null);
     setAuthLoading(true);
     try {
@@ -238,7 +256,15 @@ export default function App() {
       return (
         <Landing 
           onLogin={() => setAuthMode('login')} 
-          onRegister={() => setAuthMode('register')} 
+          onRegister={() => {
+            if (registrationEnabled) {
+              setAuthMode('register');
+            } else {
+              setLoginError('Chức năng đăng ký hiện đang tạm khóa.');
+              setAuthMode('login');
+            }
+          }} 
+          registrationEnabled={registrationEnabled}
         />
       );
     }
@@ -282,15 +308,17 @@ export default function App() {
                 >
                   Đăng nhập
                 </button>
-                <button
-                  onClick={() => { setAuthMode('register'); setLoginError(null); setLoginSuccess(null); }}
-                  className={cn(
-                    "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
-                    authMode === 'register' ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"
-                  )}
-                >
-                  Đăng ký
-                </button>
+                {registrationEnabled && (
+                  <button
+                    onClick={() => { setAuthMode('register'); setLoginError(null); setLoginSuccess(null); }}
+                    className={cn(
+                      "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
+                      authMode === 'register' ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"
+                    )}
+                  >
+                    Đăng ký
+                  </button>
+                )}
               </div>
             )}
 
@@ -695,6 +723,8 @@ export default function App() {
           }}
         />
       )}
+
+      <Toaster position="top-right" richColors closeButton />
 
       <footer className="border-t border-stone-200 py-12 bg-white mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">

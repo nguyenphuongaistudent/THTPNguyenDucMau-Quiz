@@ -331,26 +331,26 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Main Question Area */}
-        <div className="lg:col-span-3 space-y-8 min-w-0">
+        <div className="lg:col-span-3 space-y-6 min-w-0">
           {/* Question Card */}
-          <div className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-10 md:p-12 shadow-sm min-h-[400px] flex flex-col">
+          <div className="bg-white rounded-3xl border border-stone-200 p-4 sm:p-6 md:p-8 shadow-sm min-h-[350px] flex flex-col">
             <div className="flex-grow min-w-0 break-words whitespace-normal">
-              <p className="text-sm font-bold text-stone-400 uppercase tracking-widest mb-4">
+              <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">
                 {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm' : 'Phần 2: Đúng/Sai'} - Câu {currentQuestionIndex + 1} / {questions.length}
               </p>
               <h3 
-                className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-10 leading-relaxed markdown-body break-words whitespace-normal w-full"
+                className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-4 leading-relaxed markdown-body break-words whitespace-normal w-full"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.text) }}
               />
 
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-2">
                 {currentQuestion.type === 'multiple_choice' ? (
                   currentQuestion.options.map((option, index) => (
                     <button
                       key={index}
                       onClick={() => handleAnswerSelect(index)}
                       className={cn(
-                        "flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all group",
+                        "flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all group",
                         answers[currentQuestionIndex] === index 
                           ? "border-emerald-500 bg-emerald-50/30 ring-4 ring-emerald-500/5" 
                           : "border-stone-100 hover:border-stone-200 hover:bg-stone-50"
@@ -374,17 +374,17 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                     </button>
                   ))
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {['a', 'b', 'c', 'd'].map((label, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row sm:items-start justify-between p-5 rounded-2xl border border-stone-100 bg-stone-50/30 gap-4">
-                        <div className="flex items-start gap-4 flex-grow min-w-0">
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-start justify-between p-3 rounded-2xl border border-stone-100 bg-stone-50/30 gap-3">
+                        <div className="flex items-start gap-3 flex-grow min-w-0">
                           <span className="font-bold text-emerald-600 w-6 shrink-0 mt-1">{label}.</span>
                           <div 
                             className="text-stone-700 text-xs sm:text-sm font-sans font-medium flex-1 markdown-body leading-relaxed prose prose-stone max-w-none break-words whitespace-normal w-full"
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.options[index]) }}
                           />
                         </div>
-                        <div className="flex items-center gap-6 bg-white px-6 py-3 rounded-xl border border-stone-200 shadow-sm shrink-0">
+                        <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-xl border border-stone-200 shadow-sm shrink-0">
                           <label className="flex items-center gap-2 cursor-pointer group">
                             <input
                               type="radio"
@@ -413,7 +413,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               </div>
             </div>
 
-            <div className="flex items-center justify-between mt-12 pt-8 border-t border-stone-50">
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-stone-50">
               <button
                 onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                 disabled={currentQuestionIndex === 0}

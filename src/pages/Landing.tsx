@@ -4,9 +4,10 @@ import { BookOpen, Shield, GraduationCap, Users, ArrowRight, CheckCircle } from 
 interface LandingProps {
   onLogin: () => void;
   onRegister: () => void;
+  registrationEnabled: boolean;
 }
 
-export default function Landing({ onLogin, onRegister }: LandingProps) {
+export default function Landing({ onLogin, onRegister, registrationEnabled }: LandingProps) {
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans">
       {/* Hero Section */}
@@ -30,12 +31,14 @@ export default function Landing({ onLogin, onRegister }: LandingProps) {
             >
               Đăng nhập
             </button>
-            <button 
-              onClick={onRegister}
-              className="bg-stone-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-stone-800 transition-all"
-            >
-              Đăng ký ngay
-            </button>
+            {registrationEnabled && (
+              <button 
+                onClick={onRegister}
+                className="bg-stone-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-stone-800 transition-all"
+              >
+                Đăng ký ngay
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -54,17 +57,19 @@ export default function Landing({ onLogin, onRegister }: LandingProps) {
               Hệ thống thi trắc nghiệm trực tuyến hiện đại dành cho giáo viên và học sinh. Quản lý đề thi dễ dàng, làm bài trực quan và kết quả tức thì.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button 
-                onClick={onRegister}
-                className="w-full sm:w-auto bg-stone-900 text-white px-8 py-4 rounded-2xl font-medium hover:bg-stone-800 transition-all flex items-center justify-center gap-2 shadow-xl shadow-stone-200"
-              >
-                Bắt đầu miễn phí <ArrowRight className="w-5 h-5" />
-              </button>
+              {registrationEnabled && (
+                <button 
+                  onClick={onRegister}
+                  className="w-full sm:w-auto bg-stone-900 text-white px-8 py-4 rounded-2xl font-medium hover:bg-stone-800 transition-all flex items-center justify-center gap-2 shadow-xl shadow-stone-200"
+                >
+                  Bắt đầu miễn phí <ArrowRight className="w-5 h-5" />
+                </button>
+              )}
               <button 
                 onClick={onLogin}
                 className="w-full sm:w-auto bg-white text-stone-900 border border-stone-200 px-8 py-4 rounded-2xl font-medium hover:bg-stone-50 transition-all"
               >
-                Xem các bài thi mẫu
+                {registrationEnabled ? 'Xem các bài thi mẫu' : 'Đăng nhập ngay'}
               </button>
             </div>
           </div>
@@ -114,13 +119,15 @@ export default function Landing({ onLogin, onRegister }: LandingProps) {
             <div className="relative z-10">
               <h2 className="text-3xl md:text-5xl font-serif italic mb-8">Sẵn sàng để bắt đầu?</h2>
               <p className="text-stone-400 mb-12 max-w-xl mx-auto">
-                Đăng ký ngay hôm nay và trải nghiệm cách thức thi trắc nghiệm hoàn toàn mới.
+                {registrationEnabled 
+                  ? 'Đăng ký ngay hôm nay và trải nghiệm cách thức thi trắc nghiệm hoàn toàn mới.'
+                  : 'Đăng nhập ngay hôm nay để tiếp tục hành trình chinh phục kiến thức.'}
               </p>
               <button 
-                onClick={onRegister}
+                onClick={registrationEnabled ? onRegister : onLogin}
                 className="bg-emerald-500 text-stone-900 px-10 py-4 rounded-2xl font-bold hover:bg-emerald-400 transition-all inline-flex items-center gap-2"
               >
-                Đăng ký tài khoản <CheckCircle className="w-5 h-5" />
+                {registrationEnabled ? 'Đăng ký tài khoản' : 'Đăng nhập ngay'} <CheckCircle className="w-5 h-5" />
               </button>
             </div>
           </div>
