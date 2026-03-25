@@ -19,6 +19,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | boolean[])[]>([]);
+  const [reviewed, setReviewed] = useState<boolean[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
@@ -104,6 +105,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
           setAnswers(new Array(shuffledQuestions.length).fill(-1).map((_, i) => 
             shuffledQuestions[i].type === 'true_false' ? [null, null, null, null] : -1
           ));
+          setReviewed(new Array(shuffledQuestions.length).fill(false));
         }
       } catch (error) {
         console.error('Error fetching quiz:', error);
@@ -209,6 +211,12 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
     setAnswers(newAnswers);
   };
 
+  const toggleReviewed = () => {
+    const newReviewed = [...reviewed];
+    newReviewed[currentQuestionIndex] = !newReviewed[currentQuestionIndex];
+    setReviewed(newReviewed);
+  };
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
@@ -287,8 +295,18 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
-  const mcQuestions = questions.map((q, i) => ({ ...q, originalIndex: i })).filter(q => q.type === 'multiple_choice');
-  const tfQuestions = questions.map((q, i) => ({ ...q, originalIndex: i })).filter(q => q.type === 'true_false');
+  const answeredCount = answers.filter((a, i) => {
+    if (questions[i].type === 'multiple_choice') {
+      return a !== -1;
+    } else {
+      return (a as (boolean | null)[]).some(val => val !== null);
+    }
+  }).length;
+
+  const hours = Math.floor(timeLeft / 3600);
+  const mins = Math.floor((timeLeft % 3600) / 60);
+  const secs = timeLeft % 60;
+  const timeString = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -333,14 +351,27 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         {/* Main Question Area */}
         <div className="lg:col-span-3 space-y-6 min-w-0">
           {/* Question Card */}
-          <div className="bg-white rounded-3xl border border-stone-200 p-4 sm:p-6 md:p-8 shadow-sm min-h-[350px] flex flex-col">
-            <div className="flex-grow min-w-0 break-words whitespace-normal" style={{ wordBreak: 'normal' }}>
-              <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">
-                {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm' : 'Phần 2: Đúng/Sai'} - Câu {currentQuestionIndex + 1} / {questions.length}
-              </p>
+          <div className="bg-white rounded-3xl border border-stone-200 p-4 sm:p-6 md:p-8 shadow-sm min-h-[350px] flex flex-col text-left">
+            <div className="flex-grow min-w-0 break-normal whitespace-pre-wrap text-left">
+              <div className="flex justify-between items-start mb-2">
+                <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">
+                  {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm' : 'Phần 2: Đúng/Sai'} - Câu {currentQuestionIndex + 1} / {questions.length}
+                </p>
+                <button 
+                  onClick={toggleReviewed}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-bold transition-all border",
+                    reviewed[currentQuestionIndex] 
+                      ? "bg-[#a569bd] text-white border-[#a569bd]" 
+                      : "bg-white text-stone-400 border-stone-200 hover:border-stone-300"
+                  )}
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  Kiểm tra lại
+                </button>
+              </div>
               <h3 
-                className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-4 leading-relaxed markdown-body break-words whitespace-normal w-full"
-                style={{ wordBreak: 'normal' }}
+                className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-4 leading-relaxed markdown-body break-normal whitespace-pre-wrap w-full text-left"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.text) }}
               />
 
@@ -366,11 +397,10 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         {String.fromCharCode(65 + index)}
                       </div>
                       <div className={cn(
-                        "text-sm sm:text-base font-sans font-medium transition-colors flex-1 min-w-0 break-words whitespace-normal w-full",
+                        "text-sm sm:text-base font-sans font-medium transition-colors flex-1 min-w-0 break-normal whitespace-pre-wrap w-full text-left",
                         currentQuestion.type === 'true_false' && "markdown-body",
                         answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
                       )}
-                      style={{ wordBreak: 'normal' }}
                       dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(option) }}
                       />
                     </button>
@@ -382,8 +412,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         <div className="flex items-start gap-3 flex-grow min-w-0">
                           <span className="font-bold text-emerald-600 w-6 shrink-0 mt-1">{label}.</span>
                           <div 
-                            className="text-stone-700 text-xs sm:text-sm font-sans font-medium flex-1 markdown-body leading-relaxed prose prose-stone max-w-none break-words whitespace-normal w-full"
-                            style={{ wordBreak: 'normal' }}
+                            className="text-stone-700 text-xs sm:text-sm font-sans font-medium flex-1 markdown-body leading-relaxed prose prose-stone max-w-none break-normal whitespace-pre-wrap w-full text-left"
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.options[index]) }}
                           />
                         </div>
@@ -448,69 +477,80 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
 
         {/* Question Navigator Sidebar */}
         <div className="space-y-6">
-          <div className="bg-white rounded-3xl border border-stone-200 p-6 shadow-sm sticky top-40">
-            <div className="mb-6">
-              <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Danh sách câu hỏi</p>
-            </div>
-
-            <div className="space-y-6 pr-2">
-              {mcQuestions.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold text-stone-400 uppercase mb-3 px-1">Phần 1: Trắc nghiệm</p>
-                  <div className="grid grid-cols-4 gap-3">
-                    {mcQuestions.map((q) => (
-                      <button
-                        key={q.originalIndex}
-                        onClick={() => setCurrentQuestionIndex(q.originalIndex)}
-                        className={cn(
-                          "w-11 h-11 rounded-xl flex items-center justify-center text-xs font-bold transition-all",
-                          currentQuestionIndex === q.originalIndex 
-                            ? "bg-stone-900 text-white shadow-md scale-110 z-10" 
-                            : answers[q.originalIndex] !== -1 && (!Array.isArray(answers[q.originalIndex]) || (answers[q.originalIndex] as (boolean | null)[]).some(a => a !== null))
-                              ? "bg-emerald-500 text-white shadow-sm" 
-                              : "bg-stone-100 text-stone-500 hover:bg-stone-200"
-                        )}
-                      >
-                        {q.originalIndex + 1}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {tfQuestions.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold text-stone-400 uppercase mb-3 px-1">Phần 2: Đúng/Sai</p>
-                  <div className="grid grid-cols-4 gap-3">
-                    {tfQuestions.map((q) => (
-                      <button
-                        key={q.originalIndex}
-                        onClick={() => setCurrentQuestionIndex(q.originalIndex)}
-                        className={cn(
-                          "w-11 h-11 rounded-xl flex items-center justify-center text-xs font-bold transition-all",
-                          currentQuestionIndex === q.originalIndex 
-                            ? "bg-stone-900 text-white shadow-md scale-110 z-10" 
-                            : (answers[q.originalIndex] as (boolean | null)[]).some(a => a !== null)
-                              ? "bg-emerald-500 text-white shadow-sm"
-                              : "bg-stone-100 text-stone-500 hover:bg-stone-200"
-                        )}
-                      >
-                        {q.originalIndex + 1}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-stone-100 grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                <span className="text-[10px] text-stone-500 font-medium">Đã chọn</span>
+          <div className="bg-white rounded-3xl border border-stone-200 p-0 shadow-sm sticky top-24 overflow-hidden flex flex-col max-h-[calc(100vh-120px)]">
+            {/* Sidebar Header */}
+            <div className="grid grid-cols-2 border-b border-stone-100">
+              <div className="p-4 text-center border-r border-stone-100">
+                <p className="text-sm font-medium text-stone-600 mb-1">Số câu đã làm</p>
+                <p className="text-2xl font-bold text-stone-900">{answeredCount}/{questions.length}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-stone-100" />
-                <span className="text-[10px] text-stone-500 font-medium">Chưa chọn</span>
+              <div className="p-4 text-center">
+                <p className="text-sm font-medium text-stone-600 mb-1">Thời gian còn lại</p>
+                <p className={cn(
+                  "text-2xl font-bold",
+                  timeLeft < 60 ? "text-red-600" : "text-slate-500"
+                )}>
+                  {timeString}
+                </p>
+              </div>
+            </div>
+
+            {/* Question Grid - Scrollable */}
+            <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
+              <div className="grid grid-cols-6 gap-3">
+                {questions.map((_, index) => {
+                  const isAnswered = questions[index].type === 'multiple_choice' 
+                    ? answers[index] !== -1 
+                    : (answers[index] as (boolean | null)[]).some(a => a !== null);
+                  const isReviewed = reviewed[index];
+                  
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentQuestionIndex(index)}
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all border",
+                        currentQuestionIndex === index 
+                          ? "ring-2 ring-stone-900 ring-offset-2 z-10" 
+                          : "",
+                        isReviewed
+                          ? "bg-[#a569bd] text-white border-[#a569bd]"
+                          : isAnswered
+                            ? "bg-[#00a651] text-white border-[#00a651]" 
+                            : "bg-white text-stone-900 border-stone-200 hover:border-stone-400"
+                      )}
+                    >
+                      {index + 1}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Submit Button Section */}
+            <div className="p-6 pt-0 flex flex-col items-center">
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="w-full bg-[#f39c12] hover:bg-[#e67e22] text-white py-4 px-6 rounded-full font-bold text-lg shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 mb-6 uppercase tracking-wider"
+              >
+                {submitting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : "Nộp bài"}
+              </button>
+
+              {/* Legend */}
+              <div className="w-full space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[#00a651]" />
+                  <span className="text-sm text-stone-700 font-medium">Câu đã làm</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full border border-stone-200 bg-white" />
+                  <span className="text-sm text-stone-700 font-medium">Câu chưa làm</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[#a569bd]" />
+                  <span className="text-sm text-stone-700 font-medium">Câu cần kiểm tra lại</span>
+                </div>
               </div>
             </div>
           </div>

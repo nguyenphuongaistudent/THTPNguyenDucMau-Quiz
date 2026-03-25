@@ -24,13 +24,15 @@
   border-bottom-right-radius: 0.75rem;
 }
 
-.markdown-body {
+.markdown-body,
+.markdown-body * {
+  text-align: left !important;
   overflow-wrap: break-word !important;
   word-wrap: break-word !important;
   word-break: normal !important;
   white-space: pre-wrap !important;
   font-family: inherit;
-  hyphens: none;
+  hyphens: none !important;
   max-width: 100%;
 }
 
@@ -55,6 +57,25 @@
   height: auto;
   border-radius: 0.5rem;
   margin: 1rem 0;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 
 
