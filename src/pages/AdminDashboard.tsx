@@ -460,7 +460,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         duration: Number(editingQuiz.duration),
         maxAttempts: Number(editingQuiz.maxAttempts || 0),
         isActive: editingQuiz.isActive ?? true,
-        allowedRoles: editingQuiz.allowedRoles || ['student', 'guest'],
+        allowedRoles: editingQuiz.allowedRoles || ['student', 'student-vip', 'guest'],
+        reviewRoles: editingQuiz.reviewRoles || ['student', 'student-vip', 'guest'],
         updatedAt: serverTimestamp()
       };
 
@@ -983,6 +984,32 @@ d. Ý thứ tư
                           className="w-5 h-5 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
                         />
                         <label htmlFor={`role-${role}`} className="text-sm text-stone-600 capitalize">
+                          {role === 'student' ? 'Học sinh' : role === 'student-vip' ? 'Học sinh-VIP' : 'Khách'}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-sm font-medium text-stone-700 block">Vai trò được phép xem lại bài thi</label>
+                  <div className="flex flex-wrap gap-6">
+                    {['student', 'student-vip', 'guest'].map((role) => (
+                      <div key={`review-${role}`} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`review-role-${role}`}
+                          checked={editingQuiz?.reviewRoles?.includes(role as any) ?? true}
+                          onChange={(e) => {
+                            const currentRoles = editingQuiz?.reviewRoles || ['student', 'student-vip', 'guest'];
+                            const newRoles = e.target.checked 
+                              ? [...currentRoles, role as any]
+                              : currentRoles.filter(r => r !== role);
+                            setEditingQuiz({ ...editingQuiz, reviewRoles: newRoles });
+                          }}
+                          className="w-5 h-5 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <label htmlFor={`review-role-${role}`} className="text-sm text-stone-600 capitalize">
                           {role === 'student' ? 'Học sinh' : role === 'student-vip' ? 'Học sinh-VIP' : 'Khách'}
                         </label>
                       </div>

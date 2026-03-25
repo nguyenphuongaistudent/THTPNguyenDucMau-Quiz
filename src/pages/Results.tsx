@@ -16,6 +16,7 @@ interface ResultsProps {
 export default function Results({ user }: ResultsProps) {
   const [results, setResults] = useState<Result[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [allQuizzes, setAllQuizzes] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [reviewingResult, setReviewingResult] = useState<Result | null>(null);
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
@@ -105,6 +106,17 @@ export default function Results({ user }: ResultsProps) {
       setLoading(false);
     });
 
+    const quizzesQ = query(collection(db, 'quizzes'));
+    const unsubscribeQuizzes = onSnapshot(quizzesQ, (snapshot) => {
+      const quizMap: Record<string, any> = {};
+      snapshot.docs.forEach(doc => {
+        quizMap[doc.id] = doc.data();
+      });
+      setAllQuizzes(quizMap);
+    }, (error) => {
+      console.error("Error listening to quizzes:", error);
+    });
+
     let unsubscribeUsers = () => {};
     if (user.role === 'admin' || user.role === 'teacher') {
       const usersQ = query(collection(db, 'users'));
@@ -122,6 +134,7 @@ export default function Results({ user }: ResultsProps) {
 
     return () => {
       unsubscribeResults();
+      unsubscribeQuizzes();
       unsubscribeUsers();
     };
   }, [user]);
@@ -320,13 +333,24 @@ export default function Results({ user }: ResultsProps) {
               </div>
 
               <div className="flex items-center gap-4 shrink-0">
-                <button
-                  onClick={() => setReviewingResult(result)}
-                  className="flex items-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-600 px-4 py-2 rounded-xl font-bold text-sm transition-all"
-                >
-                  <Eye className="w-4 h-4" />
-                  Xem lại
-                </button>
+                {(() => {
+                  const quiz = allQuizzes[result.quizId];
+                  const canReview = user.role === 'admin' || user.role === 'teacher' || (quiz?.reviewRoles?.includes(user.role) ?? true);
+                  
+                  if (!canReview) return (
+                    <div className="text-xs text-stone-400 italic">Không được phép xem lại</div>
+                  );
+
+                  return (
+                    <button
+                      onClick={() => setReviewingResult(result)}
+                      className="flex items-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-600 px-4 py-2 rounded-xl font-bold text-sm transition-all"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Xem lại
+                    </button>
+                  );
+                })()}
                 {(user.role === 'admin' || user.role === 'teacher') && (
                   <button
                     onClick={() => handleDeleteResults([result.id])}

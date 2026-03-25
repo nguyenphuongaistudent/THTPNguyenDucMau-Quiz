@@ -285,12 +285,12 @@ export default function App() {
               <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-6 border border-white/20 overflow-hidden">
                 <img 
                   src="https://lh3.googleusercontent.com/d/1nJFV426bMfXBj-Ce8neJl-GpSlLTJgmV" 
-                  alt="EduQuiz Logo" 
+                  alt="Nguyễn Đức Mậu-QuizPro Logo" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <h1 className="text-4xl font-serif font-medium mb-2 italic tracking-tight">EduQuiz Pro</h1>
+              <h1 className="text-4xl font-serif font-medium mb-2 italic tracking-tight">Nguyễn Đức Mậu-QuizPro</h1>
               <p className="text-stone-400 text-sm">Nền tảng thi trắc nghiệm trực tuyến chuyên nghiệp</p>
             </div>
           </div>
@@ -607,12 +607,12 @@ export default function App() {
               <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center overflow-hidden">
                 <img 
                   src="https://lh3.googleusercontent.com/d/1nJFV426bMfXBj-Ce8neJl-GpSlLTJgmV" 
-                  alt="EduQuiz Logo" 
+                  alt="Nguyễn Đức Mậu-QuizPro Logo" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <span className="text-xl font-serif italic font-medium tracking-tight">EduQuiz Pro</span>
+              <span className="text-xl font-serif italic font-medium tracking-tight">Nguyễn Đức Mậu-QuizPro</span>
             </div>
 
             <div className="flex items-center gap-4">
@@ -732,7 +732,7 @@ export default function App() {
 
       <footer className="border-t border-stone-200 py-12 bg-white mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-stone-400 text-sm">© 2026 EduQuiz Pro. Nền tảng giáo dục trực tuyến.</p>
+          <p className="text-stone-400 text-sm">© 2026 Nguyễn Đức Mậu-QuizPro. Nền tảng giáo dục trực tuyến.</p>
         </div>
       </footer>
     </div>

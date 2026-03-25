@@ -17,12 +17,12 @@ export default function Landing({ onLogin, onRegister, registrationEnabled }: La
             <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center overflow-hidden">
               <img 
                 src="https://lh3.googleusercontent.com/d/1nJFV426bMfXBj-Ce8neJl-GpSlLTJgmV" 
-                alt="EduQuiz Logo" 
+                alt="Nguyễn Đức Mậu-QuizPro Logo" 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
             </div>
-            <span className="text-xl font-serif italic font-medium tracking-tight">EduQuiz Pro</span>
+            <span className="text-xl font-serif italic font-medium tracking-tight">Nguyễn Đức Mậu-QuizPro</span>
           </div>
           <div className="flex items-center gap-4">
             <button 
@@ -51,7 +51,7 @@ export default function Landing({ onLogin, onRegister, registrationEnabled }: La
               <Shield className="w-3 h-3" /> Nền tảng bảo mật & tin cậy
             </div>
             <h1 className="text-5xl md:text-7xl font-serif font-medium text-stone-900 mb-8 italic leading-tight">
-              Nâng tầm kiến thức với <span className="text-emerald-600">EduQuiz Pro</span>
+              Nâng tầm kiến thức với <span className="text-emerald-600">Nguyễn Đức Mậu-QuizPro</span>
             </h1>
             <p className="text-xl text-stone-500 mb-12 leading-relaxed max-w-2xl mx-auto">
               Hệ thống thi trắc nghiệm trực tuyến hiện đại dành cho giáo viên và học sinh. Quản lý đề thi dễ dàng, làm bài trực quan và kết quả tức thì.
@@ -136,7 +136,7 @@ export default function Landing({ onLogin, onRegister, registrationEnabled }: La
 
       <footer className="py-12 border-t border-stone-200">
         <div className="max-w-7xl mx-auto px-4 text-center text-stone-400 text-sm">
-          <p>© 2026 EduQuiz Pro. Nền tảng giáo dục trực tuyến hàng đầu.</p>
+          <p>© 2026 Nguyễn Đức Mậu-QuizPro. Nền tảng giáo dục trực tuyến hàng đầu.</p>
         </div>
       </footer>
     </div>
