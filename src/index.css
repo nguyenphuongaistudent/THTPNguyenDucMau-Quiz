@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "react-quill-new/dist/quill.snow.css";
+@import "katex/dist/katex.min.css";
 
 .ql-editor {
   min-height: 100px;

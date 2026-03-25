@@ -5,6 +5,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, Question, User, Result } from '../types';
 import { Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Loader2, Send, X } from 'lucide-react';
 import { cn, formatDuration } from '../lib/utils';
+import RichText from '../components/RichText';
 
 interface TakeQuizProps {
   quizId: string;
@@ -336,7 +337,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
             <div className="flex-grow min-w-0 break-normal whitespace-pre-wrap text-left">
               <div className="flex justify-between items-start mb-2">
                 <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">
-                  {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm' : 'Phần 2: Đúng/Sai'} - Câu {currentQuestionIndex + 1} / {questions.length}
+                  {currentQuestion.type === 'multiple_choice' ? 'Phần I: Câu hỏi nhiều lựa chọn' : 'Phần II: Câu hỏi đúng sai'}
                 </p>
                 <button 
                   onClick={toggleReviewed}
@@ -351,9 +352,9 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                   Kiểm tra lại
                 </button>
               </div>
-              <h3 
-                className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-4 leading-relaxed markdown-body break-normal whitespace-normal w-full"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.text) }}
+              <RichText 
+                className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-4 leading-relaxed break-normal whitespace-normal w-full"
+                content={currentQuestion.text}
               />
               <div className="grid grid-cols-1 gap-2">
                 {currentQuestion.type === 'multiple_choice' ? (
@@ -376,12 +377,12 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                       )}>
                         {String.fromCharCode(65 + index)}
                       </div>
-                      <div className={cn(
-                        "text-sm sm:text-base font-sans font-light transition-colors flex-1 min-w-0 break-normal whitespace-pre-wrap w-full text-left",
-                        currentQuestion.type === 'true_false' && "markdown-body",
-                        answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
-                      )}
-                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(option) }}
+                      <RichText 
+                        className={cn(
+                          "text-sm sm:text-base font-sans font-light transition-colors flex-1 min-w-0 break-normal whitespace-pre-wrap w-full text-left",
+                          answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
+                        )}
+                        content={option}
                       />
                     </button>
                   ))
@@ -391,9 +392,9 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                       <div key={index} className="flex flex-col sm:flex-row sm:items-start justify-between p-3 rounded-2xl border border-stone-100 bg-stone-50/30 gap-3">
                         <div className="flex items-start gap-3 flex-grow min-w-0">
                           <span className="font-bold text-emerald-600 w-6 shrink-0 mt-1">{label}.</span>
-                          <div 
-                            className="text-stone-700 text-xs sm:text-sm font-sans font-light flex-1 markdown-body leading-relaxed prose prose-stone max-w-none break-normal whitespace-pre-wrap w-full text-left"
-                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.options[index]) }}
+                          <RichText 
+                            className="text-stone-700 text-xs sm:text-sm font-sans font-light flex-1 leading-relaxed prose prose-stone max-w-none break-normal whitespace-pre-wrap w-full text-left"
+                            content={currentQuestion.options[index]}
                           />
                         </div>
                         <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-xl border border-stone-200 shadow-sm shrink-0">
@@ -476,35 +477,74 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
             </div>
 
             {/* Question Grid */}
-            <div className="p-4">
-              <div className="grid grid-cols-6 gap-2">
-                {questions.map((_, index) => {
-                  const isAnswered = questions[index].type === 'multiple_choice' 
-                    ? answers[index] !== -1 
-                    : (answers[index] as (boolean | null)[]).some(a => a !== null);
-                  const isReviewed = reviewed[index];
-                  
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentQuestionIndex(index)}
-                      className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all border",
-                        currentQuestionIndex === index 
-                          ? "ring-2 ring-stone-900 ring-offset-1 z-10" 
-                          : "",
-                        isReviewed
-                          ? "bg-[#a569bd] text-white border-[#a569bd]"
-                          : isAnswered
-                            ? "bg-[#00a651] text-white border-[#00a651]" 
-                            : "bg-white text-stone-900 border-stone-200 hover:border-stone-400"
-                      )}
-                    >
-                      {index + 1}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
+              {/* Part I: Multiple Choice */}
+              {questions.some(q => q.type === 'multiple_choice') && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Phần I. Câu hỏi nhiều lựa chọn</p>
+                  <div className="grid grid-cols-6 gap-2">
+                    {questions.map((q, index) => {
+                      if (q.type !== 'multiple_choice') return null;
+                      const isAnswered = answers[index] !== -1;
+                      const isReviewed = reviewed[index];
+                      
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentQuestionIndex(index)}
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all border",
+                            currentQuestionIndex === index 
+                              ? "ring-2 ring-stone-900 ring-offset-1 z-10" 
+                              : "",
+                            isReviewed
+                              ? "bg-[#a569bd] text-white border-[#a569bd]"
+                              : isAnswered
+                                ? "bg-[#00a651] text-white border-[#00a651]" 
+                                : "bg-white text-stone-900 border-stone-200 hover:border-stone-400"
+                          )}
+                        >
+                          {index + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Part II: True/False */}
+              {questions.some(q => q.type === 'true_false') && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Phần II. Câu hỏi đúng sai</p>
+                  <div className="grid grid-cols-6 gap-2">
+                    {questions.map((q, index) => {
+                      if (q.type !== 'true_false') return null;
+                      const isAnswered = (answers[index] as (boolean | null)[]).some(a => a !== null);
+                      const isReviewed = reviewed[index];
+                      
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentQuestionIndex(index)}
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all border",
+                            currentQuestionIndex === index 
+                              ? "ring-2 ring-stone-900 ring-offset-1 z-10" 
+                              : "",
+                            isReviewed
+                              ? "bg-[#a569bd] text-white border-[#a569bd]"
+                              : isAnswered
+                                ? "bg-[#00a651] text-white border-[#00a651]" 
+                                : "bg-white text-stone-900 border-stone-200 hover:border-stone-400"
+                          )}
+                        >
+                          {index + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Submit Button Section */}

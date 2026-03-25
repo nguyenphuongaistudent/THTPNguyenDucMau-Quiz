@@ -7,6 +7,7 @@ import { Quiz, Question, User, QuestionType } from '../types';
 import { Plus, Trash2, Edit, ChevronRight, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Save, X, List, PlusCircle, Upload, Download, FileSpreadsheet, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatDuration, formatDate, cn } from '../lib/utils';
 import ImportQuizModal from '../components/ImportQuizModal';
+import RichText from '../components/RichText';
 import { ImportedQuiz, downloadFile } from '../lib/importUtils';
 import DOMPurify from 'dompurify';
 
@@ -44,9 +45,9 @@ const QuestionEditor = memo(({
           </div>
           <div className="flex-1 min-w-0">
             {!isExpanded ? (
-              <div 
-                className="text-sm text-stone-600 truncate font-medium"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(q.text || 'Câu hỏi chưa có nội dung...') }}
+              <RichText 
+                className="text-sm text-stone-600 truncate font-medium max-h-10 overflow-hidden"
+                content={q.text || 'Câu hỏi chưa có nội dung...'}
               />
             ) : (
               <span className="text-sm font-bold text-stone-400 uppercase tracking-wider">Đang chỉnh sửa câu hỏi {qIndex + 1}</span>
@@ -125,13 +126,20 @@ const QuestionEditor = memo(({
                     onChange={() => onUpdate(qIndex, 'correctOptionIndex', oIndex)}
                     className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
                   />
-                  <input
-                    type="text"
-                    value={opt || ''}
-                    onChange={(e) => onUpdateOption(qIndex, oIndex, e.target.value)}
-                    className="flex-grow min-w-0 px-4 py-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                    placeholder={`Lựa chọn ${oIndex + 1}`}
-                  />
+                  <div className="flex-grow min-w-0 bg-white rounded-xl overflow-hidden border border-stone-200">
+                    <ReactQuill
+                      theme="snow"
+                      value={opt || ''}
+                      onChange={(val) => onUpdateOption(qIndex, oIndex, val)}
+                      modules={{
+                        toolbar: [
+                          ['bold', 'italic', 'underline'],
+                          ['image', 'clean']
+                        ],
+                      }}
+                      placeholder={`Lựa chọn ${oIndex + 1}`}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -574,9 +582,60 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     }
   };
 
+  const handleDownloadSample = () => {
+    // A simple sample structure for Word import
+    const sampleContent = `Tiêu đề: Đề thi mẫu THPT
+Môn: Toán
+Thời gian: 90
+Chủ đề: regular
+
+Phần I. Câu hỏi nhiều lựa chọn
+Câu 1. Nội dung câu hỏi trắc nghiệm...
+A. Phương án A
+B. Phương án B
+C. Phương án C
+D. Phương án D
+Đáp án: A
+
+Phần II. Câu hỏi đúng sai
+Câu 1. Nội dung câu hỏi đúng sai...
+a. Ý thứ nhất
+b. Ý thứ hai
+c. Ý thứ ba
+d. Ý thứ tư
+Đáp án: Đúng, Sai, Đúng, Đúng`;
+
+    const blob = new Blob([sampleContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Mau_de_thi.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('Đã tải xuống file mẫu định dạng văn bản. Bạn có thể soạn thảo tương tự trong file Word và lưu lại để nhập vào hệ thống.');
+  };
+
   const handleDeleteQuiz = async (id: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa bài thi này?')) {
-      await deleteDoc(doc(db, 'quizzes', id));
+    if (confirm('Bạn có chắc chắn muốn xóa bài thi này? Tất cả dữ liệu liên quan sẽ bị mất.')) {
+      try {
+        setSaving(true);
+        // Delete questions first
+        const questionsSnapshot = await getDocs(collection(db, 'quizzes', id, 'questions'));
+        const batch = writeBatch(db);
+        questionsSnapshot.docs.forEach(d => batch.delete(d.ref));
+        
+        // Delete quiz
+        batch.delete(doc(db, 'quizzes', id));
+        await batch.commit();
+        alert('Đã xóa bài thi thành công.');
+      } catch (error) {
+        console.error('Error deleting quiz:', error);
+        alert('Có lỗi xảy ra khi xóa bài thi.');
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -636,6 +695,13 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         </div>
         
         <div className="flex items-center gap-4">
+          <button
+            onClick={handleDownloadSample}
+            className="flex items-center justify-center gap-2 bg-white text-emerald-600 py-2 px-4 rounded-lg hover:bg-emerald-50 transition-all font-medium border border-emerald-200 text-sm"
+          >
+            <Download className="w-4 h-4" />
+            Tải file mẫu (Word)
+          </button>
           <button
             onClick={() => setIsImportModalOpen(true)}
             className="flex items-center justify-center gap-2 bg-stone-100 text-stone-600 py-2 px-4 rounded-lg hover:bg-stone-200 transition-all font-medium border border-stone-200 text-sm"
