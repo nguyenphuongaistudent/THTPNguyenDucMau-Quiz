@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Result, User } from '../types';
-import { Trophy, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, ChevronRight, BookOpen, User as UserIcon, School } from 'lucide-react';
+import { Trophy, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, ChevronRight, BookOpen, User as UserIcon, School, Eye } from 'lucide-react';
 import { formatDate, cn } from '../lib/utils';
+import ReviewQuiz from '../components/ReviewQuiz';
 
 interface ResultsProps {
   user: User;
@@ -12,6 +13,7 @@ interface ResultsProps {
 export default function Results({ user }: ResultsProps) {
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reviewingResult, setReviewingResult] = useState<Result | null>(null);
 
   useEffect(() => {
     const q = (user.role === 'admin' || user.role === 'teacher')
@@ -125,6 +127,13 @@ export default function Results({ user }: ResultsProps) {
               </div>
 
               <div className="flex items-center gap-4 shrink-0">
+                <button
+                  onClick={() => setReviewingResult(result)}
+                  className="flex items-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-600 px-4 py-2 rounded-xl font-bold text-sm transition-all"
+                >
+                  <Eye className="w-4 h-4" />
+                  Xem lại
+                </button>
                 <div className="w-32 h-2 bg-stone-100 rounded-full overflow-hidden hidden sm:block">
                   <div 
                     className={cn(
@@ -150,6 +159,13 @@ export default function Results({ user }: ResultsProps) {
           <h3 className="text-lg font-medium text-stone-900">Chưa có kết quả nào</h3>
           <p className="text-stone-500">Hãy bắt đầu làm bài thi đầu tiên của bạn ngay hôm nay.</p>
         </div>
+      )}
+
+      {reviewingResult && (
+        <ReviewQuiz 
+          result={reviewingResult} 
+          onClose={() => setReviewingResult(null)} 
+        />
       )}
     </div>
   );

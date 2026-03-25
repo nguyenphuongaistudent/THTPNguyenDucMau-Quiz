@@ -82,24 +82,14 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 options: shuffledOptions.map(o => o.text),
                 correctOptionIndex: shuffledOptions.findIndex(o => o.isCorrect)
               };
-            } else if (q.type === 'true_false' && q.options && q.correctAnswers) {
-              const subStatementsWithCorrect = q.options.map((opt, idx) => ({
-                text: opt,
-                isCorrect: q.correctAnswers![idx]
-              }));
-              const shuffledSubStatements = shuffleArray(subStatementsWithCorrect);
-              return {
-                ...q,
-                options: shuffledSubStatements.map(s => s.text),
-                correctAnswers: shuffledSubStatements.map(s => s.isCorrect)
-              };
             }
+            // True/False questions and their sub-statements are NOT shuffled as per user request
             return q;
           });
 
           // Shuffle questions within their parts (MC first, then TF)
           const mcQuestions = shuffleArray(questionList.filter(q => q.type === 'multiple_choice'));
-          const tfQuestions = shuffleArray(questionList.filter(q => q.type === 'true_false'));
+          const tfQuestions = questionList.filter(q => q.type === 'true_false'); // Keep original order for Part II
           const shuffledQuestions = [...mcQuestions, ...tfQuestions];
 
           setQuestions(shuffledQuestions);
@@ -552,7 +542,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="w-full bg-[#f39c12] hover:bg-[#e67e22] text-white py-4 px-6 rounded-full font-bold text-lg shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 mb-6 uppercase tracking-wider"
+                className="w-full bg-[#f39c12] hover:bg-[#e67e22] text-white py-2.5 px-6 rounded-full font-bold text-base shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 mb-6 uppercase tracking-wider"
               >
                 {submitting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : "Nộp bài"}
               </button>

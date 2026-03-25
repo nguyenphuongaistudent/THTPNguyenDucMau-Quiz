@@ -122,9 +122,26 @@ export const parseWord = async (arrayBuffer: ArrayBuffer): Promise<ImportedQuiz>
         parsingQuestions = true;
         if (currentQuestion) questions.push(currentQuestion);
         
+        // Strip the question number from the HTML content
+        let questionHtml = el.outerHTML;
+        const matchedText = questionMatch[0];
+        // Create a temporary div to manipulate HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = el.innerHTML;
+        
+        // Find the text node that contains the match and remove it
+        const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null);
+        let node;
+        while (node = walker.nextNode()) {
+          if (node.textContent?.includes(matchedText)) {
+            node.textContent = node.textContent.replace(matchedText, '').trim();
+            break;
+          }
+        }
+        
         currentQuestion = {
           type: currentType,
-          text: el.outerHTML,
+          text: tempDiv.innerHTML || el.outerHTML,
           options: [],
           correctOptionIndex: currentType === 'multiple_choice' ? 0 : undefined,
           correctAnswers: currentType === 'true_false' ? [] : undefined,
