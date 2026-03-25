@@ -25,10 +25,10 @@
 }
 
 .markdown-body {
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: normal;
-  white-space: pre-wrap;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  word-break: normal !important;
+  white-space: pre-wrap !important;
   font-family: inherit;
   hyphens: none;
   max-width: 100%;

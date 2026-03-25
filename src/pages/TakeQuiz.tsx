@@ -334,12 +334,13 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         <div className="lg:col-span-3 space-y-6 min-w-0">
           {/* Question Card */}
           <div className="bg-white rounded-3xl border border-stone-200 p-4 sm:p-6 md:p-8 shadow-sm min-h-[350px] flex flex-col">
-            <div className="flex-grow min-w-0 break-words whitespace-normal">
+            <div className="flex-grow min-w-0 break-words whitespace-normal" style={{ wordBreak: 'normal' }}>
               <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">
                 {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm' : 'Phần 2: Đúng/Sai'} - Câu {currentQuestionIndex + 1} / {questions.length}
               </p>
               <h3 
                 className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-4 leading-relaxed markdown-body break-words whitespace-normal w-full"
+                style={{ wordBreak: 'normal' }}
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.text) }}
               />
 
@@ -369,6 +370,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         currentQuestion.type === 'true_false' && "markdown-body",
                         answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
                       )}
+                      style={{ wordBreak: 'normal' }}
                       dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(option) }}
                       />
                     </button>
@@ -381,6 +383,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                           <span className="font-bold text-emerald-600 w-6 shrink-0 mt-1">{label}.</span>
                           <div 
                             className="text-stone-700 text-xs sm:text-sm font-sans font-medium flex-1 markdown-body leading-relaxed prose prose-stone max-w-none break-words whitespace-normal w-full"
+                            style={{ wordBreak: 'normal' }}
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.options[index]) }}
                           />
                         </div>

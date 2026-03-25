@@ -80,7 +80,7 @@ export default function Results({ user }: ResultsProps) {
               <div className="flex-grow">
                 <div className="flex items-center gap-2 mb-1">
                   <BookOpen className="w-4 h-4 text-stone-400" />
-                  <h3 className="text-lg font-medium text-stone-900 break-words min-w-0">{result.quizTitle || "Bài thi trắc nghiệm"}</h3>
+                  <h3 className="text-lg font-medium text-stone-900 break-normal min-w-0">{result.quizTitle || "Bài thi trắc nghiệm"}</h3>
                   {result.subject && (
                     <span className="text-[10px] px-1.5 py-0.5 bg-stone-100 rounded text-stone-500 font-bold uppercase tracking-tighter">
                       {result.subject}
