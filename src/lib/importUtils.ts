@@ -91,9 +91,14 @@ export const parseWord = async (arrayBuffer: ArrayBuffer): Promise<ImportedQuiz>
         continue;
       }
 
+      // Auto-detect question start if no separator found
+      if (!parsingQuestions && line.match(/^(\d+[\.\:\/\)]|(Câu|Question) \d+[\.\:\/\)]|\(\d+\))/i)) {
+        parsingQuestions = true;
+      }
+
       if (parsingQuestions) {
-        // Detect new question (starts with number like "1." or "Câu 1:")
-        const questionMatch = line.match(/^(\d+[\.\:]|Câu \d+[\.\:])/i);
+        // Detect new question (starts with number like "1." or "Câu 1:" or "Question 1:" or "1/" or "(1)")
+        const questionMatch = line.match(/^(\d+[\.\:\/\)]|(Câu|Question) \d+[\.\:\/\)]|\(\d+\))/i);
         if (questionMatch) {
           if (currentQuestion) questions.push(currentQuestion);
           currentQuestion = {
@@ -109,7 +114,8 @@ export const parseWord = async (arrayBuffer: ArrayBuffer): Promise<ImportedQuiz>
         }
 
         // Detect options (A., B., C., D. for multiple_choice OR a., b., c., d. for true_false)
-        const optionMatch = line.match(/^([A-D]|[a-d])[\.\)]/i);
+        // Support more than A-D and multiple separators
+        const optionMatch = line.match(/^([A-Z]|[a-z])[\.\:\/\)]/i);
         if (optionMatch && currentQuestion) {
           const optText = line.replace(optionMatch[0], '').trim();
           if (!currentQuestion.options) currentQuestion.options = [];
@@ -118,7 +124,7 @@ export const parseWord = async (arrayBuffer: ArrayBuffer): Promise<ImportedQuiz>
         }
 
         // Detect answer
-        const answerMatch = line.match(/^(Answer|Đáp án)[\.\:]\s*(.*)/i);
+        const answerMatch = line.match(/^(Answer|Đáp án|Dap an)[\.\:]\s*(.*)/i);
         if (answerMatch && currentQuestion) {
           const ansContent = answerMatch[2].trim();
           

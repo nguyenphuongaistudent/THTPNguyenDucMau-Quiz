@@ -352,10 +352,9 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 </button>
               </div>
               <h3 
-                className="text-lg sm:text-xl font-sans font-light text-stone-900 mb-4 leading-relaxed markdown-body break-normal whitespace-pre-wrap w-full text-left"
+                className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-4 leading-relaxed markdown-body break-normal whitespace-normal w-full"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.text) }}
               />
-
               <div className="grid grid-cols-1 gap-2">
                 {currentQuestion.type === 'multiple_choice' ? (
                   currentQuestion.options.map((option, index) => (

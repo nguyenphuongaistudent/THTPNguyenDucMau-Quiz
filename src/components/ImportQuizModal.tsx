@@ -141,8 +141,8 @@ export default function ImportQuizModal({ onClose, onImport }: ImportQuizModalPr
                   <li>Subject: Môn học</li>
                   <li>Topic: regular/periodic/graduation</li>
                   <li>Duration: 45</li>
-                  <li>--- (Dấu ngăn cách)</li>
-                  <li>1. Nội dung câu hỏi?</li>
+                  <li>--- (Dấu ngăn cách - Tùy chọn)</li>
+                  <li>1. (hoặc Câu 1.) Nội dung câu hỏi?</li>
                   <li>A. Lựa chọn 1</li>
                   <li>B. Lựa chọn 2...</li>
                   <li>Answer: A</li>
