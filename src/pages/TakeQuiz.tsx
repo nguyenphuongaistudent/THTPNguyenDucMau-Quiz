@@ -347,9 +347,9 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Main Question Area */}
-        <div className="lg:col-span-3 space-y-6 min-w-0">
+        <div className="lg:col-span-8 space-y-6 min-w-0">
           {/* Question Card */}
           <div className="bg-white rounded-3xl border border-stone-200 p-4 sm:p-6 md:p-8 shadow-sm min-h-[350px] flex flex-col text-left">
             <div className="flex-grow min-w-0 break-normal whitespace-pre-wrap text-left">
@@ -371,7 +371,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 </button>
               </div>
               <h3 
-                className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-4 leading-relaxed markdown-body break-normal whitespace-pre-wrap w-full text-left"
+                className="text-lg sm:text-xl font-sans font-light text-stone-900 mb-4 leading-relaxed markdown-body break-normal whitespace-pre-wrap w-full text-left"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.text) }}
               />
 
@@ -397,7 +397,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         {String.fromCharCode(65 + index)}
                       </div>
                       <div className={cn(
-                        "text-sm sm:text-base font-sans font-medium transition-colors flex-1 min-w-0 break-normal whitespace-pre-wrap w-full text-left",
+                        "text-sm sm:text-base font-sans font-light transition-colors flex-1 min-w-0 break-normal whitespace-pre-wrap w-full text-left",
                         currentQuestion.type === 'true_false' && "markdown-body",
                         answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
                       )}
@@ -412,7 +412,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                         <div className="flex items-start gap-3 flex-grow min-w-0">
                           <span className="font-bold text-emerald-600 w-6 shrink-0 mt-1">{label}.</span>
                           <div 
-                            className="text-stone-700 text-xs sm:text-sm font-sans font-medium flex-1 markdown-body leading-relaxed prose prose-stone max-w-none break-normal whitespace-pre-wrap w-full text-left"
+                            className="text-stone-700 text-xs sm:text-sm font-sans font-light flex-1 markdown-body leading-relaxed prose prose-stone max-w-none break-normal whitespace-pre-wrap w-full text-left"
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.options[index]) }}
                           />
                         </div>
@@ -476,18 +476,18 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         </div>
 
         {/* Question Navigator Sidebar */}
-        <div className="space-y-6">
+        <div className="lg:col-span-4 space-y-6">
           <div className="bg-white rounded-3xl border border-stone-200 p-0 shadow-sm sticky top-24 overflow-hidden flex flex-col max-h-[calc(100vh-120px)]">
             {/* Sidebar Header */}
             <div className="grid grid-cols-2 border-b border-stone-100">
-              <div className="p-4 text-center border-r border-stone-100">
-                <p className="text-sm font-medium text-stone-600 mb-1">Số câu đã làm</p>
-                <p className="text-2xl font-bold text-stone-900">{answeredCount}/{questions.length}</p>
+              <div className="p-3 text-center border-r border-stone-100">
+                <p className="text-xs font-medium text-stone-500 mb-1">Số câu đã làm</p>
+                <p className="text-xl font-bold text-stone-900">{answeredCount}/{questions.length}</p>
               </div>
-              <div className="p-4 text-center">
-                <p className="text-sm font-medium text-stone-600 mb-1">Thời gian còn lại</p>
+              <div className="p-3 text-center">
+                <p className="text-xs font-medium text-stone-500 mb-1">Thời gian còn lại</p>
                 <p className={cn(
-                  "text-2xl font-bold",
+                  "text-xl font-bold whitespace-nowrap",
                   timeLeft < 60 ? "text-red-600" : "text-slate-500"
                 )}>
                   {timeString}
@@ -496,8 +496,8 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
             </div>
 
             {/* Question Grid - Scrollable */}
-            <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
-              <div className="grid grid-cols-6 gap-3">
+            <div className="flex-grow overflow-y-auto p-4 custom-scrollbar">
+              <div className="grid grid-cols-6 gap-2">
                 {questions.map((_, index) => {
                   const isAnswered = questions[index].type === 'multiple_choice' 
                     ? answers[index] !== -1 
@@ -509,9 +509,9 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                       key={index}
                       onClick={() => setCurrentQuestionIndex(index)}
                       className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all border",
+                        "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all border",
                         currentQuestionIndex === index 
-                          ? "ring-2 ring-stone-900 ring-offset-2 z-10" 
+                          ? "ring-2 ring-stone-900 ring-offset-1 z-10" 
                           : "",
                         isReviewed
                           ? "bg-[#a569bd] text-white border-[#a569bd]"
