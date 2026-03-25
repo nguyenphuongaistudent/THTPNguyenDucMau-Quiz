@@ -103,7 +103,8 @@ export const signInWithGoogle = async () => {
           class: preAssignedData.class || 'Tự do',
           role: preAssignedRole,
           isApproved: isApproved,
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(),
+          lastLoginAt: serverTimestamp()
         });
         
         // If there was a pre-assigned doc with a different ID (e.g. random ID), delete it
@@ -118,10 +119,20 @@ export const signInWithGoogle = async () => {
       try {
         await setDoc(doc(db, 'users', user.uid), {
           role: 'admin',
-          isApproved: true
+          isApproved: true,
+          lastLoginAt: serverTimestamp()
         }, { merge: true });
       } catch (error) {
         handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
+      }
+    } else {
+      // Just update last login
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          lastLoginAt: serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error updating last login:', error);
       }
     }
     return user;
@@ -235,6 +246,16 @@ export const signInWithUsernameOrEmail = async (loginId: string, pass: string) =
     try {
       // Try normal sign in
       const result = await signInWithEmailAndPassword(auth, email, pass);
+      
+      // Update last login
+      try {
+        await updateDoc(doc(db, 'users', result.user.uid), {
+          lastLoginAt: serverTimestamp()
+        });
+      } catch (e) {
+        console.error('Error updating last login:', e);
+      }
+      
       return result.user;
     } catch (authError: any) {
       console.log('Auth error code:', authError.code);

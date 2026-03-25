@@ -4,7 +4,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { User, UserRole } from '../types';
 import * as XLSX from 'xlsx';
 import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save, FileDown, FileUp, Key, Download, ChevronUp, ChevronDown, Filter, X, RefreshCw } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, formatDate } from '../lib/utils';
 import { motion } from 'motion/react';
 import { sendPasswordReset, signUpWithEmail, checkUsernameUnique, checkEmailUnique } from '../firebase';
 import { toast } from 'sonner';
@@ -682,6 +682,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                   <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Vai trò</th>
                   <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Phê duyệt</th>
                   <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Trạng thái</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Đăng nhập cuối</th>
                   <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider text-right">Thao tác</th>
                 </tr>
               </thead>
@@ -752,6 +753,11 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                       )}>
                         {user.uid.startsWith('pre_') ? "Chờ đăng nhập" : "Đã kích hoạt"}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs text-stone-500">
+                        {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Chưa từng'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">

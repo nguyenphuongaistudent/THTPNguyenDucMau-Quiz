@@ -129,15 +129,19 @@ service cloud.firestore {
     }
 
     function isValidResult(data) {
-      return hasOnlyAllowedFields(['quizId', 'quizTitle', 'subject', 'topic', 'studentUid', 'studentName', 'score', 'totalQuestions', 'correctAnswers', 'completedAt', 'answers']) &&
+      return hasOnlyAllowedFields(['quizId', 'quizTitle', 'subject', 'topic', 'studentUid', 'studentName', 'studentSchool', 'studentClass', 'score', 'totalQuestions', 'correctAnswers', 'completedAt', 'answers']) &&
              (!('quizId' in data) || data.quizId is string) &&
+             (!('quizTitle' in data) || data.quizTitle is string) &&
              (!('subject' in data) || data.subject is string) &&
              (!('topic' in data) || data.topic in ['regular', 'periodic', 'graduation']) &&
              (!('studentUid' in data) || data.studentUid is string) &&
              (!('studentName' in data) || data.studentName is string) &&
+             (!('studentSchool' in data) || data.studentSchool is string) &&
+             (!('studentClass' in data) || data.studentClass is string) &&
              (!('score' in data) || data.score is number) &&
              (!('totalQuestions' in data) || data.totalQuestions is number) &&
              (!('correctAnswers' in data) || data.correctAnswers is number) &&
+             (!('completedAt' in data) || data.completedAt is timestamp) &&
              (!('answers' in data) || data.answers is list);
     }
 
@@ -186,6 +190,7 @@ service cloud.firestore {
     match /results/{resultId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.resource.data.studentUid == request.auth.uid && isValidResult(request.resource.data);
+      allow delete: if isAdmin() || isTeacher();
     }
 
     match /settings/{settingId} {

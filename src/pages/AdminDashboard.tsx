@@ -436,6 +436,18 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       return;
     }
 
+    // Check for duplicate title (if it's a new quiz or title changed)
+    const isNewQuiz = !editingQuiz.id;
+    const titleChanged = !isNewQuiz && editingQuiz.title !== quizzes.find(q => q.id === editingQuiz.id)?.title;
+
+    if (isNewQuiz || titleChanged) {
+      const duplicate = quizzes.find(q => q.title.trim().toLowerCase() === editingQuiz.title.trim().toLowerCase() && q.id !== editingQuiz.id);
+      if (duplicate) {
+        alert('Tên bài thi đã tồn tại. Vui lòng chọn tên khác.');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       let quizId = editingQuiz.id;

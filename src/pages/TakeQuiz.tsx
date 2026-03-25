@@ -32,7 +32,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         // Check attempts first
         const resultsQ = query(
           collection(db, 'results'),
-          where('userId', '==', user.uid),
+          where('studentUid', '==', user.uid),
           where('quizId', '==', quizId)
         );
         const resultsSnapshot = await getDocs(resultsQ);
@@ -109,6 +109,30 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
     fetchQuizData();
   }, [quizId, user.uid]);
 
+  const stripPrefix = (text: string) => {
+    // Remove prefixes like "A. ", "B. ", "1. ", "a. ", etc. from the beginning of the text
+    // Also handle HTML tags if they are present at the start
+    let cleanText = text.trim();
+    
+    // If it's HTML, we need to be careful. Let's try to strip from the text content.
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = cleanText;
+    const firstChild = tempDiv.firstChild;
+    
+    if (firstChild && firstChild.nodeType === Node.TEXT_NODE) {
+      firstChild.textContent = firstChild.textContent?.replace(/^[A-Za-z0-9][.)]\s*/, '') || '';
+    } else if (firstChild && firstChild.nodeType === Node.ELEMENT_NODE) {
+      // Check the first text node inside the first element
+      const walker = document.createTreeWalker(firstChild, NodeFilter.SHOW_TEXT, null);
+      const firstTextNode = walker.nextNode();
+      if (firstTextNode) {
+        firstTextNode.textContent = firstTextNode.textContent?.replace(/^[A-Za-z0-9][.)]\s*/, '') || '';
+      }
+    }
+    
+    return tempDiv.innerHTML;
+  };
+
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
     setSubmitting(true);
@@ -122,7 +146,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         if (q.type === 'multiple_choice') {
           if (studentAnswer === q.correctOptionIndex) {
             correctCount++;
-            totalScore += (10 / questions.length); // Standard weight for MCQ
+            totalScore += (10 / questions.length);
           }
         } else if (q.type === 'true_false' && Array.isArray(studentAnswer)) {
           let subCorrectCount = 0;
@@ -132,44 +156,46 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
             }
           });
 
-          // TN THPT 2018 Scoring for Part II (True/False):
-          // 1 correct: 0.1 points
-          // 2 correct: 0.25 points
-          // 3 correct: 0.5 points
-          // 4 correct: 1.0 points
-          // (Assuming total score is 10, we scale this)
-          // If we assume each question is worth 1 "unit" of the total 10 points:
           let questionWeight = 10 / questions.length;
           if (subCorrectCount === 1) totalScore += questionWeight * 0.1;
           else if (subCorrectCount === 2) totalScore += questionWeight * 0.25;
           else if (subCorrectCount === 3) totalScore += questionWeight * 0.5;
           else if (subCorrectCount === 4) {
             totalScore += questionWeight * 1.0;
-            correctCount++; // Count as fully correct for stats
+            correctCount++;
           }
         }
       });
 
+      // Ensure answers are Firestore-compatible (no undefined)
+      const sanitizedAnswers = answers.map(a => {
+        if (Array.isArray(a)) {
+          return { val: a.map(v => v === undefined ? null : v) };
+        }
+        return { val: a === undefined ? -1 : a };
+      });
+
       await addDoc(collection(db, 'results'), {
         quizId,
-        quizTitle: quiz?.title,
-        subject: quiz?.subject,
-        topic: quiz?.topic,
+        quizTitle: quiz?.title || 'Bài thi không tên',
+        subject: quiz?.subject || 'Chưa rõ',
+        topic: quiz?.topic || 'regular',
         studentUid: user.uid,
-        studentName: user.displayName,
+        studentName: user.displayName || user.email || 'Thí sinh',
         studentSchool: user.school || '',
         studentClass: user.class || '',
         score: Number(totalScore.toFixed(2)),
         totalQuestions: questions.length,
         correctAnswers: correctCount,
         completedAt: serverTimestamp(),
-        answers: answers.map(a => ({ val: a }))
+        answers: sanitizedAnswers
       });
 
       onComplete();
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      alert('Có lỗi xảy ra khi nộp bài.');
+      handleFirestoreError(error, OperationType.WRITE, 'results');
+      alert('Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }
@@ -344,7 +370,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               </div>
               <RichText 
                 className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-4 leading-relaxed break-normal whitespace-normal w-full"
-                content={currentQuestion.text}
+                content={stripPrefix(currentQuestion.text)}
               />
               <div className="grid grid-cols-1 gap-2">
                 {currentQuestion.type === 'multiple_choice' ? (
@@ -359,20 +385,12 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                           : "border-stone-100 hover:border-stone-200 hover:bg-stone-50"
                       )}
                     >
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center font-bold transition-colors",
-                        answers[currentQuestionIndex] === index 
-                          ? "bg-emerald-500 text-white" 
-                          : "bg-stone-100 text-stone-400 group-hover:bg-stone-200"
-                      )}>
-                        {String.fromCharCode(65 + index)}
-                      </div>
                       <RichText 
                         className={cn(
                           "text-sm sm:text-base font-sans font-light transition-colors flex-1 min-w-0 break-normal whitespace-pre-wrap w-full text-left",
                           answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
                         )}
-                        content={option}
+                        content={stripPrefix(option)}
                       />
                     </button>
                   ))
@@ -381,10 +399,9 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                     {['a', 'b', 'c', 'd'].map((label, index) => (
                       <div key={index} className="flex flex-col sm:flex-row sm:items-start justify-between p-3 rounded-2xl border border-stone-100 bg-stone-50/30 gap-3">
                         <div className="flex items-start gap-3 flex-grow min-w-0">
-                          <span className="font-bold text-emerald-600 w-6 shrink-0 mt-1">{label}.</span>
                           <RichText 
                             className="text-stone-700 text-xs sm:text-sm font-sans font-light flex-1 leading-relaxed prose prose-stone max-w-none break-normal whitespace-pre-wrap w-full text-left"
-                            content={currentQuestion.options[index]}
+                            content={stripPrefix(currentQuestion.options[index])}
                           />
                         </div>
                         <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-xl border border-stone-200 shadow-sm shrink-0">

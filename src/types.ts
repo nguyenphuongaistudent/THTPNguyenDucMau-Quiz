@@ -12,6 +12,7 @@ export interface User {
   role: UserRole;
   isApproved: boolean;
   createdAt: Timestamp;
+  lastLoginAt?: Timestamp;
   emailVerified?: boolean;
 }
 
