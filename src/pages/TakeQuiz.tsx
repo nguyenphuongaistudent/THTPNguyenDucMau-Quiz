@@ -477,7 +477,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
 
         {/* Question Navigator Sidebar */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white rounded-3xl border border-stone-200 p-0 shadow-sm sticky top-24 overflow-hidden flex flex-col max-h-[calc(100vh-120px)]">
+          <div className="bg-white rounded-3xl border border-stone-200 p-0 shadow-sm sticky top-20 overflow-hidden">
             {/* Sidebar Header */}
             <div className="grid grid-cols-2 border-b border-stone-100">
               <div className="p-3 text-center border-r border-stone-100">
@@ -495,8 +495,8 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               </div>
             </div>
 
-            {/* Question Grid - Scrollable */}
-            <div className="flex-grow overflow-y-auto p-4 custom-scrollbar">
+            {/* Question Grid */}
+            <div className="p-4">
               <div className="grid grid-cols-6 gap-2">
                 {questions.map((_, index) => {
                   const isAnswered = questions[index].type === 'multiple_choice' 
