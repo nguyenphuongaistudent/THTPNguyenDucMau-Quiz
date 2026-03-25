@@ -3,7 +3,7 @@ import { collection, onSnapshot, query, orderBy, setDoc, doc, deleteDoc, serverT
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { User, UserRole } from '../types';
 import * as XLSX from 'xlsx';
-import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save, FileDown, FileUp, Key, Download, ChevronUp, ChevronDown, Filter, X, RefreshCw } from 'lucide-react';
+import { Users, UserPlus, Trash2, Shield, GraduationCap, UserCircle, Star, Loader2, Search, Mail, CheckCircle, XCircle, Clock, Edit2, School, BookOpen, Save, FileDown, FileUp, Key, Download, ChevronUp, ChevronDown, Filter, X, RefreshCw } from 'lucide-react';
 import { cn, formatDate } from '../lib/utils';
 import { motion } from 'motion/react';
 import { sendPasswordReset, signUpWithEmail, checkUsernameUnique, checkEmailUnique } from '../firebase';
@@ -111,9 +111,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         ...editForm
       }, { merge: true });
       setEditingUser(null);
+      toast.success('Cập nhật thông tin thành công.');
     } catch (error) {
       console.error('Error updating user:', error);
-      alert('Có lỗi xảy ra khi cập nhật thông tin.');
+      toast.error('Có lỗi xảy ra khi cập nhật thông tin.');
     } finally {
       setSaving(false);
     }
@@ -184,11 +185,16 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
             'Tự do'
           ).toString().trim();
 
-          const role = (
+          let role = (
             normalizedRow['vai trò'] || 
             normalizedRow['role'] || 
             'student'
-          ).toString().trim().toLowerCase();
+          ).toString().trim().toLowerCase() as UserRole;
+
+          // Restrict roles for non-admin users
+          if (currentUser.role !== 'admin' && (role === 'admin' || role === 'teacher' || role === 'student-vip')) {
+            role = 'student';
+          }
           
           if (email && displayName) {
             // Check if email or username already exists
@@ -254,12 +260,12 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         if (alreadyExists > 0) message += `\n- Bỏ qua ${alreadyExists} thành viên đã tồn tại.`;
         if (missingInfo > 0) message += `\n- Bỏ qua ${missingInfo} dòng thiếu thông tin bắt buộc (Email, Họ và tên).`;
         
-        alert(message);
+        toast.success(message);
       };
       reader.readAsBinaryString(file);
     } catch (error) {
       console.error('Error importing excel:', error);
-      alert('Có lỗi xảy ra khi nhập dữ liệu từ Excel.');
+      toast.error('Có lỗi xảy ra khi nhập dữ liệu từ Excel.');
     } finally {
       setImporting(false);
       e.target.value = '';
@@ -340,7 +346,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmail || !newPassword || !newUsername || !newDisplayName) {
-      alert('Vui lòng điền đầy đủ các thông tin bắt buộc (Email, Tên đăng nhập, Mật khẩu, Họ và tên).');
+      toast.error('Vui lòng điền đầy đủ các thông tin bắt buộc (Email, Tên đăng nhập, Mật khẩu, Họ và tên).');
       return;
     }
 
@@ -348,20 +354,22 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     try {
       const emailUnique = await checkEmailUnique(newEmail);
       if (!emailUnique) {
-        alert('Email này đã tồn tại trong hệ thống.');
+        toast.error('Email này đã tồn tại trong hệ thống.');
+        setSaving(false);
         return;
       }
 
       const usernameUnique = await checkUsernameUnique(newUsername);
       if (!usernameUnique) {
-        alert('Tên đăng nhập này đã tồn tại.');
+        toast.error('Tên đăng nhập này đã tồn tại.');
+        setSaving(false);
         return;
       }
 
       const finalSchool = newSchool.trim() || 'Trường Tự do';
       const finalClass = newClass.trim() || 'Tự do';
 
-      await signUpWithEmail(newEmail, newPassword, newDisplayName, newUsername, finalSchool, finalClass);
+      await signUpWithEmail(newEmail, newPassword, newDisplayName, newUsername, finalSchool, finalClass, newRole);
       
       setNewEmail('');
       setNewUsername('');
@@ -369,34 +377,38 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       setNewDisplayName('');
       setNewSchool('');
       setNewClass('');
+      setNewRole('student');
       setIsAdding(false);
+      toast.success('Thêm người dùng thành công.');
     } catch (error: any) {
       console.error('Error adding user:', error);
-      alert(error.message || 'Có lỗi xảy ra khi thêm người dùng.');
+      toast.error(error.message || 'Có lỗi xảy ra khi thêm người dùng.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleUpdateRole = async (uid: string, role: UserRole) => {
-    if (currentUser.role !== 'admin' && role === 'admin') {
-      alert('Chỉ quản trị viên mới có thể cấp quyền Admin.');
+    if (currentUser.role !== 'admin' && (role === 'admin' || role === 'teacher' || role === 'student-vip')) {
+      toast.error('Chỉ quản trị viên mới có thể cấp quyền này.');
       return;
     }
     try {
       await setDoc(doc(db, 'users', uid), { role }, { merge: true });
+      toast.success('Cập nhật vai trò thành công.');
     } catch (error) {
       console.error('Error updating role:', error);
-      alert('Có lỗi xảy ra khi cập nhật vai trò.');
+      toast.error('Có lỗi xảy ra khi cập nhật vai trò.');
     }
   };
 
   const handleToggleApproval = async (uid: string, currentStatus: boolean) => {
     try {
       await setDoc(doc(db, 'users', uid), { isApproved: !currentStatus }, { merge: true });
+      toast.success(currentStatus ? 'Đã hủy phê duyệt.' : 'Đã phê duyệt thành viên.');
     } catch (error) {
       console.error('Error toggling approval:', error);
-      alert('Có lỗi xảy ra khi cập nhật trạng thái phê duyệt.');
+      toast.error('Có lỗi xảy ra khi cập nhật trạng thái phê duyệt.');
     }
   };
 
@@ -522,6 +534,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       case 'admin': return <Shield className="w-4 h-4 text-red-500" />;
       case 'teacher': return <GraduationCap className="w-4 h-4 text-emerald-500" />;
       case 'student': return <UserCircle className="w-4 h-4 text-stone-500" />;
+      case 'student-vip': return <Star className="w-4 h-4 text-amber-500" />;
       case 'guest': return <Users className="w-4 h-4 text-stone-400" />;
     }
   };
@@ -531,6 +544,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       case 'admin': return 'Quản trị viên';
       case 'teacher': return 'Giáo viên';
       case 'student': return 'Học sinh';
+      case 'student-vip': return 'Học sinh-VIP';
       case 'guest': return 'Khách';
     }
   };
@@ -695,7 +709,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                   <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Vai trò</th>
                   <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Phê duyệt</th>
                   <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Trạng thái</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Đăng nhập cuối</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">Lịch sử truy cập</th>
                   <th className="px-6 py-4 text-xs font-semibold text-stone-500 uppercase tracking-wider text-right">Thao tác</th>
                 </tr>
               </thead>
@@ -737,7 +751,12 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                       >
                         <option value="guest">Khách</option>
                         <option value="student">Học sinh</option>
-                        <option value="teacher">Giáo viên</option>
+                        {currentUser.role === 'admin' && (
+                          <>
+                            <option value="student-vip">Học sinh-VIP</option>
+                            <option value="teacher">Giáo viên</option>
+                          </>
+                        )}
                         {currentUser.role === 'admin' && <option value="admin">Quản trị viên</option>}
                       </select>
                     </td>
@@ -1041,9 +1060,13 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                 <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
                   <Shield className="w-4 h-4" /> Vai trò mặc định
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {(['guest', 'student', 'teacher', 'admin'] as UserRole[])
-                    .filter(role => currentUser.role === 'admin' || role !== 'admin')
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {(['guest', 'student', 'student-vip', 'teacher', 'admin'] as UserRole[])
+                    .filter(role => {
+                      if (currentUser.role === 'admin') return true;
+                      // Teachers can only create students or guests
+                      return role === 'student' || role === 'guest';
+                    })
                     .map((role) => (
                       <button
                         key={role}

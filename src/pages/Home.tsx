@@ -257,7 +257,7 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                     </div>
                   ) : !roleAllowed ? (
                     <div className="flex items-center gap-1 text-stone-400 font-medium text-sm">
-                      <XCircle className="w-4 h-4" /> Không dành cho {user.role === 'student' ? 'Học sinh' : 'Khách'}
+                      <XCircle className="w-4 h-4" /> Không dành cho {user.role === 'student' ? 'Học sinh' : user.role === 'student-vip' ? 'Học sinh-VIP' : 'Khách'}
                     </div>
                   ) : limitReached ? (
                     <div className="flex items-center gap-1 text-red-500 font-medium text-sm">

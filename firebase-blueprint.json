@@ -11,7 +11,7 @@
         "displayName": { "type": "string", "description": "Tên hiển thị" },
         "school": { "type": "string", "description": "Trường học" },
         "class": { "type": "string", "description": "Lớp học" },
-        "role": { "type": "string", "enum": ["admin", "teacher", "student"], "description": "Vai trò người dùng" },
+        "role": { "type": "string", "enum": ["admin", "teacher", "student", "student-vip"], "description": "Vai trò người dùng" },
         "isApproved": { "type": "boolean", "description": "Trạng thái phê duyệt tài khoản" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo tài khoản" }
       },

@@ -144,7 +144,7 @@ export const signInWithGoogle = async () => {
 
 export const logout = () => signOut(auth);
 
-export const signUpWithEmail = async (email: string, pass: string, name: string, username?: string, school?: string, className?: string) => {
+export const signUpWithEmail = async (email: string, pass: string, name: string, username?: string, school?: string, className?: string, role?: UserRole) => {
   try {
     // Check username uniqueness if provided
     if (username) {
@@ -165,15 +165,15 @@ export const signUpWithEmail = async (email: string, pass: string, name: string,
     const q = query(collection(db, 'users'), where('email', '==', user.email));
     const querySnapshot = await getDocs(q);
     
-    let preAssignedRole: UserRole = isAdminEmail ? 'admin' : 'student';
+    let preAssignedRole: UserRole = role || (isAdminEmail ? 'admin' : 'student');
     let preAssignedDocId: string | null = null;
-    let isApproved = isAdminEmail;
+    let isApproved = isAdminEmail || !!role; // If role is provided, it's admin-created
     let preAssignedData: any = {};
 
     if (!querySnapshot.empty) {
       const preDoc = querySnapshot.docs[0];
       preAssignedData = preDoc.data();
-      preAssignedRole = preAssignedData.role as UserRole;
+      preAssignedRole = role || preAssignedData.role as UserRole;
       preAssignedDocId = preDoc.id;
       isApproved = true;
     }
@@ -188,7 +188,8 @@ export const signUpWithEmail = async (email: string, pass: string, name: string,
         class: className || preAssignedData.class || 'Tự do',
         role: preAssignedRole,
         isApproved: isApproved,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp()
       });
       
       if (preAssignedDocId && preAssignedDocId !== user.uid) {

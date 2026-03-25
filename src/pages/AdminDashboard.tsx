@@ -967,14 +967,14 @@ d. Ý thứ tư
                 <div className="space-y-4">
                   <label className="text-sm font-medium text-stone-700 block">Vai trò được phép tham gia thi</label>
                   <div className="flex flex-wrap gap-6">
-                    {['student', 'guest'].map((role) => (
+                    {['student', 'student-vip', 'guest'].map((role) => (
                       <div key={role} className="flex items-center gap-2">
                         <input
                           type="checkbox"
                           id={`role-${role}`}
                           checked={editingQuiz?.allowedRoles?.includes(role as any) ?? true}
                           onChange={(e) => {
-                            const currentRoles = editingQuiz?.allowedRoles || ['student', 'guest'];
+                            const currentRoles = editingQuiz?.allowedRoles || ['student', 'student-vip', 'guest'];
                             const newRoles = e.target.checked 
                               ? [...currentRoles, role as any]
                               : currentRoles.filter(r => r !== role);
@@ -983,7 +983,7 @@ d. Ý thứ tư
                           className="w-5 h-5 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
                         />
                         <label htmlFor={`role-${role}`} className="text-sm text-stone-600 capitalize">
-                          {role === 'student' ? 'Học sinh' : 'Khách'}
+                          {role === 'student' ? 'Học sinh' : role === 'student-vip' ? 'Học sinh-VIP' : 'Khách'}
                         </label>
                       </div>
                     ))}

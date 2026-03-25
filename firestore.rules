@@ -13,7 +13,7 @@ service cloud.firestore {
     //   - displayName: string (optional) - Tên hiển thị
     //   - school: string (optional) - Trường học
     //   - class: string (optional) - Lớp học
-    //   - role: string (required, enum: ['admin', 'teacher', 'student', 'guest']) - Vai trò
+    //   - role: string (required, enum: ['admin', 'teacher', 'student', 'student-vip', 'guest']) - Vai trò
     //   - createdAt: timestamp (required) - Ngày tạo
     //
     // Collection: quizzes
@@ -97,7 +97,7 @@ service cloud.firestore {
              (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
              (!('school' in data) || (data.school is string && data.school.size() <= 200)) &&
              (!('class' in data) || (data.class is string && data.class.size() <= 50)) &&
-             data.role in ['admin', 'teacher', 'student', 'guest'] &&
+             data.role in ['admin', 'teacher', 'student', 'student-vip', 'guest'] &&
              data.isApproved is bool;
     }
 

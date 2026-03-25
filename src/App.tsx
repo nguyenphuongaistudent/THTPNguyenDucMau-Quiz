@@ -674,7 +674,12 @@ export default function App() {
               <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-medium leading-none">{user.displayName}</p>
-                  <p className="text-xs text-stone-500 mt-1 capitalize">{user.role}</p>
+                  <p className="text-xs text-stone-500 mt-1 capitalize">
+                    {user.role === 'student-vip' ? 'Học sinh-VIP' : 
+                     user.role === 'student' ? 'Học sinh' : 
+                     user.role === 'teacher' ? 'Giáo viên' : 
+                     user.role === 'admin' ? 'Quản trị viên' : 'Khách'}
+                  </p>
                 </div>
                 <button
                   onClick={() => setIsProfileOpen(true)}

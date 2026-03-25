@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 
-export type UserRole = 'admin' | 'teacher' | 'student' | 'guest';
+export type UserRole = 'admin' | 'teacher' | 'student' | 'student-vip' | 'guest';
 
 export interface User {
   uid: string;
