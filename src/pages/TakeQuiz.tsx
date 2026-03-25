@@ -385,6 +385,14 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                           : "border-stone-100 hover:border-stone-200 hover:bg-stone-50"
                       )}
                     >
+                      <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-colors",
+                        answers[currentQuestionIndex] === index 
+                          ? "bg-emerald-500 text-white" 
+                          : "bg-stone-100 text-stone-500 group-hover:bg-stone-200"
+                      )}>
+                        {String.fromCharCode(65 + index)}
+                      </div>
                       <RichText 
                         className={cn(
                           "text-sm sm:text-base font-sans font-light transition-colors flex-1 min-w-0 break-normal whitespace-pre-wrap w-full text-left",
@@ -396,9 +404,12 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                   ))
                 ) : (
                   <div className="space-y-3">
-                    {['a', 'b', 'c', 'd'].map((label, index) => (
+                    {['A', 'B', 'C', 'D'].map((label, index) => (
                       <div key={index} className="flex flex-col sm:flex-row sm:items-start justify-between p-3 rounded-2xl border border-stone-100 bg-stone-50/30 gap-3">
                         <div className="flex items-start gap-3 flex-grow min-w-0">
+                          <div className="w-6 h-6 rounded-lg bg-stone-200 flex items-center justify-center text-[10px] font-bold text-stone-500 shrink-0 mt-0.5 uppercase">
+                            {label}
+                          </div>
                           <RichText 
                             className="text-stone-700 text-xs sm:text-sm font-sans font-light flex-1 leading-relaxed prose prose-stone max-w-none break-normal whitespace-pre-wrap w-full text-left"
                             content={stripPrefix(currentQuestion.options[index])}
@@ -446,17 +457,17 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex items-center gap-2 bg-emerald-600 text-white py-3 px-10 rounded-2xl hover:bg-emerald-700 transition-all font-medium shadow-lg shadow-emerald-200 disabled:opacity-50"
+                  className="flex items-center gap-2 bg-emerald-600 text-white py-2 px-6 rounded-xl hover:bg-emerald-700 transition-all font-medium shadow-lg shadow-emerald-200 disabled:opacity-50 text-sm"
                 >
-                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   Nộp bài
                 </button>
               ) : (
                 <button
                   onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
-                  className="flex items-center gap-2 bg-stone-900 text-white py-3 px-10 rounded-2xl hover:bg-stone-800 transition-all font-medium shadow-lg shadow-stone-200"
+                  className="flex items-center gap-2 bg-stone-900 text-white py-2 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium shadow-lg shadow-stone-200 text-sm"
                 >
-                  Tiếp theo <ChevronRight className="w-5 h-5" />
+                  Tiếp theo <ChevronRight className="w-4 h-4" />
                 </button>
               )}
             </div>

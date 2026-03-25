@@ -176,7 +176,8 @@ export default function ReviewQuiz({ result, onClose }: ReviewQuizProps) {
                               <span className="text-center">Đúng</span>
                               <span className="text-center">Sai</span>
                             </div>
-                            {q.options.map((opt, oIdx) => {
+                            {['A', 'B', 'C', 'D'].map((label, oIdx) => {
+                              const opt = q.options[oIdx];
                               const userVal = Array.isArray(userAnswer) ? userAnswer[oIdx] : null;
                               const correctVal = q.correctAnswers?.[oIdx];
                               const isSubCorrect = userVal === correctVal;
@@ -184,7 +185,7 @@ export default function ReviewQuiz({ result, onClose }: ReviewQuizProps) {
                               return (
                                 <div key={oIdx} className="grid grid-cols-[1fr,80px,80px] gap-4 items-center p-4 bg-white rounded-2xl border border-stone-100">
                                   <div className="flex items-center gap-3">
-                                    <span className="text-xs font-bold text-stone-400 uppercase">{String.fromCharCode(97 + oIdx)}.</span>
+                                    <span className="text-xs font-bold text-stone-400 uppercase">{label}.</span>
                                     <RichText className="text-stone-700" content={opt} />
                                   </div>
                                   <div className="flex justify-center">

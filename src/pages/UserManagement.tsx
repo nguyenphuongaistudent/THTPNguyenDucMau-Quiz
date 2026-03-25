@@ -402,54 +402,62 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
 
   const handleDeleteUser = async (uid: string) => {
     if (currentUser.role !== 'admin') {
-      alert('Chỉ quản trị viên mới có quyền xóa tài khoản.');
+      toast.error('Chỉ quản trị viên mới có quyền xóa tài khoản.');
       return;
     }
-    if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
-      try {
-        await deleteDoc(doc(db, 'users', uid));
-        setSelectedUsers(prev => {
-          const next = new Set(prev);
-          next.delete(uid);
-          return next;
-        });
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Có lỗi xảy ra khi xóa người dùng.');
-      }
+    if (!window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
+    
+    try {
+      await deleteDoc(doc(db, 'users', uid));
+      setSelectedUsers(prev => {
+        const next = new Set(prev);
+        next.delete(uid);
+        return next;
+      });
+      toast.success('Đã xóa người dùng thành công.');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      handleFirestoreError(error, OperationType.DELETE, 'users');
+      toast.error('Có lỗi xảy ra khi xóa người dùng.');
     }
   };
 
   const handleDeleteSelected = async () => {
     if (currentUser.role !== 'admin') {
-      alert('Chỉ quản trị viên mới có quyền xóa tài khoản.');
+      toast.error('Chỉ quản trị viên mới có quyền xóa tài khoản.');
       return;
     }
     if (selectedUsers.size === 0) return;
     
-    if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedUsers.size} người dùng đã chọn?`)) {
-      setSaving(true);
-      const total = selectedUsers.size;
-      let current = 0;
-      setDeleteProgress({ current, total });
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa ${selectedUsers.size} người dùng đã chọn?`)) return;
+    
+    setSaving(true);
+    const total = selectedUsers.size;
+    let current = 0;
+    setDeleteProgress({ current, total });
+    
+    try {
+      const { writeBatch } = await import('firebase/firestore');
+      const batch = writeBatch(db);
       
-      try {
-        for (const uid of selectedUsers) {
-          if (uid !== currentUser.uid) {
-            await deleteDoc(doc(db, 'users', uid));
-            current++;
-            setDeleteProgress({ current, total });
-          }
+      for (const uid of selectedUsers) {
+        if (uid !== currentUser.uid) {
+          batch.delete(doc(db, 'users', uid));
+          current++;
+          setDeleteProgress({ current, total });
         }
-        setSelectedUsers(new Set());
-        alert('Đã xóa thành công.');
-      } catch (error) {
-        console.error('Error deleting users:', error);
-        alert('Có lỗi xảy ra khi xóa người dùng.');
-      } finally {
-        setSaving(false);
-        setDeleteProgress(null);
       }
+      
+      await batch.commit();
+      setSelectedUsers(new Set());
+      toast.success(`Đã xóa thành công ${current} người dùng.`);
+    } catch (error) {
+      console.error('Error deleting users:', error);
+      handleFirestoreError(error, OperationType.DELETE, 'users');
+      toast.error('Có lỗi xảy ra khi xóa người dùng.');
+    } finally {
+      setSaving(false);
+      setDeleteProgress(null);
     }
   };
 
@@ -502,7 +510,12 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const uniqueSchools = Array.from(new Set(users.map(u => u.school).filter(Boolean))).sort();
-  const uniqueClasses = Array.from(new Set(users.map(u => u.class).filter(Boolean))).sort();
+  const uniqueClasses = Array.from(new Set(
+    users
+      .filter(u => !filterSchool || u.school === filterSchool)
+      .map(u => u.class)
+      .filter(Boolean)
+  )).sort();
 
   const getRoleIcon = (role: UserRole) => {
     switch (role) {

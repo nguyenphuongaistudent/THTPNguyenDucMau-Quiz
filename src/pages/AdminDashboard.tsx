@@ -10,6 +10,7 @@ import ImportQuizModal from '../components/ImportQuizModal';
 import RichText from '../components/RichText';
 import { ImportedQuiz, downloadFile } from '../lib/importUtils';
 import DOMPurify from 'dompurify';
+import { toast } from 'sonner';
 
 interface AdminDashboardProps {
   user: User;
@@ -145,8 +146,8 @@ const QuestionEditor = memo(({
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-xs font-bold text-stone-400 uppercase">Các ý (a, b, c, d) - Chọn Đúng hoặc Sai</p>
-              {['a', 'b', 'c', 'd'].map((label, oIndex) => (
+              <p className="text-xs font-bold text-stone-400 uppercase">Các ý (A, B, C, D) - Chọn Đúng hoặc Sai</p>
+              {['A', 'B', 'C', 'D'].map((label, oIndex) => (
                 <div key={oIndex} className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 bg-white border border-stone-100 rounded-xl">
                   <div className="flex items-start gap-3 flex-grow min-w-0">
                     <span className="font-bold text-emerald-600 w-6 mt-2">{label}.</span>
@@ -630,24 +631,25 @@ d. Ý thứ tư
   };
 
   const handleDeleteQuiz = async (id: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa bài thi này? Tất cả dữ liệu liên quan sẽ bị mất.')) {
-      try {
-        setSaving(true);
-        // Delete questions first
-        const questionsSnapshot = await getDocs(collection(db, 'quizzes', id, 'questions'));
-        const batch = writeBatch(db);
-        questionsSnapshot.docs.forEach(d => batch.delete(d.ref));
-        
-        // Delete quiz
-        batch.delete(doc(db, 'quizzes', id));
-        await batch.commit();
-        alert('Đã xóa bài thi thành công.');
-      } catch (error) {
-        console.error('Error deleting quiz:', error);
-        alert('Có lỗi xảy ra khi xóa bài thi.');
-      } finally {
-        setSaving(false);
-      }
+    if (!window.confirm('Bạn có chắc chắn muốn xóa bài thi này? Tất cả dữ liệu liên quan sẽ bị mất.')) return;
+    
+    setSaving(true);
+    try {
+      // Delete questions first
+      const questionsSnapshot = await getDocs(collection(db, 'quizzes', id, 'questions'));
+      const batch = writeBatch(db);
+      questionsSnapshot.docs.forEach(d => batch.delete(d.ref));
+      
+      // Delete quiz
+      batch.delete(doc(db, 'quizzes', id));
+      await batch.commit();
+      toast.success('Đã xóa bài thi thành công.');
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      handleFirestoreError(error, OperationType.DELETE, 'quizzes');
+      toast.error('Có lỗi xảy ra khi xóa bài thi.');
+    } finally {
+      setSaving(false);
     }
   };
 

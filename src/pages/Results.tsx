@@ -5,7 +5,7 @@ import { Result, User } from '../types';
 import { Trophy, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, ChevronRight, BookOpen, User as UserIcon, School, Eye, Trash2, Search, Filter } from 'lucide-react';
 import { formatDate, cn } from '../lib/utils';
 import ReviewQuiz from '../components/ReviewQuiz';
-import { deleteDoc, doc } from 'firebase/firestore';
+import { deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
@@ -15,6 +15,7 @@ interface ResultsProps {
 
 export default function Results({ user }: ResultsProps) {
   const [results, setResults] = useState<Result[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewingResult, setReviewingResult] = useState<Result | null>(null);
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
@@ -25,10 +26,27 @@ export default function Results({ user }: ResultsProps) {
   const [filterClass, setFilterClass] = useState('');
   const [filterStudent, setFilterStudent] = useState('');
 
+  // Derived filter options from system (all users)
+  const schools = Array.from(new Set(allUsers.map(u => u.school).filter(Boolean))).sort();
+  
+  const classes = Array.from(new Set(
+    allUsers
+      .filter(u => !filterSchool || u.school === filterSchool)
+      .map(u => u.class)
+      .filter(Boolean)
+  )).sort();
+
+  const students = Array.from(new Set(
+    results
+      .filter(r => (!filterSchool || r.studentSchool === filterSchool) && (!filterClass || r.studentClass === filterClass))
+      .map(r => r.studentName)
+      .filter(Boolean)
+  )).sort();
+
   const filteredResults = results.filter(r => {
-    const matchSchool = !filterSchool || r.studentSchool?.toLowerCase().includes(filterSchool.toLowerCase());
-    const matchClass = !filterClass || r.studentClass?.toLowerCase().includes(filterClass.toLowerCase());
-    const matchStudent = !filterStudent || r.studentName?.toLowerCase().includes(filterStudent.toLowerCase());
+    const matchSchool = !filterSchool || r.studentSchool === filterSchool;
+    const matchClass = !filterClass || r.studentClass === filterClass;
+    const matchStudent = !filterStudent || r.studentName === filterStudent;
     return matchSchool && matchClass && matchStudent;
   });
 
@@ -37,9 +55,13 @@ export default function Results({ user }: ResultsProps) {
     
     setDeleting(true);
     try {
-      for (const id of ids) {
-        await deleteDoc(doc(db, 'results', id));
-      }
+      const batch = writeBatch(db);
+      
+      ids.forEach(id => {
+        batch.delete(doc(db, 'results', id));
+      });
+      
+      await batch.commit();
       setSelectedResults([]);
       toast.success(`Đã xóa ${ids.length} kết quả.`);
     } catch (error) {
@@ -70,7 +92,7 @@ export default function Results({ user }: ResultsProps) {
       ? query(collection(db, 'results'), orderBy('completedAt', 'desc'))
       : query(collection(db, 'results'), where('studentUid', '==', user.uid), orderBy('completedAt', 'desc'));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribeResults = onSnapshot(q, (snapshot) => {
       const resultList = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -83,7 +105,25 @@ export default function Results({ user }: ResultsProps) {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    let unsubscribeUsers = () => {};
+    if (user.role === 'admin' || user.role === 'teacher') {
+      const usersQ = query(collection(db, 'users'));
+      unsubscribeUsers = onSnapshot(usersQ, (snapshot) => {
+        const userList = snapshot.docs.map(doc => ({
+          uid: doc.id,
+          ...doc.data()
+        })) as User[];
+        setAllUsers(userList);
+      }, (error) => {
+        console.error("Error listening to users:", error);
+        handleFirestoreError(error, OperationType.GET, 'users');
+      });
+    }
+
+    return () => {
+      unsubscribeResults();
+      unsubscribeUsers();
+    };
   }, [user]);
 
   return (
@@ -116,48 +156,57 @@ export default function Results({ user }: ResultsProps) {
               <School className="w-3 h-3" />
               Lọc theo Trường
             </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-              <input
-                type="text"
-                value={filterSchool}
-                onChange={(e) => setFilterSchool(e.target.value)}
-                placeholder="Nhập tên trường..."
-                className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              />
-            </div>
+            <select
+              value={filterSchool}
+              onChange={(e) => {
+                setFilterSchool(e.target.value);
+                setFilterClass('');
+                setFilterStudent('');
+              }}
+              className="w-full px-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none"
+            >
+              <option value="">Tất cả trường</option>
+              {schools.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
           <div className="space-y-2">
             <label className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
               <BookOpen className="w-3 h-3" />
               Lọc theo Lớp
             </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-              <input
-                type="text"
-                value={filterClass}
-                onChange={(e) => setFilterClass(e.target.value)}
-                placeholder="Nhập tên lớp..."
-                className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              />
-            </div>
+            <select
+              value={filterClass}
+              onChange={(e) => {
+                setFilterClass(e.target.value);
+                setFilterStudent('');
+              }}
+              disabled={!filterSchool && schools.length > 0}
+              className="w-full px-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none disabled:opacity-50"
+            >
+              <option value="">Tất cả lớp</option>
+              {classes.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
           <div className="space-y-2">
             <label className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
               <UserIcon className="w-3 h-3" />
               Lọc theo Học sinh
             </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-              <input
-                type="text"
-                value={filterStudent}
-                onChange={(e) => setFilterStudent(e.target.value)}
-                placeholder="Nhập tên học sinh..."
-                className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              />
-            </div>
+            <select
+              value={filterStudent}
+              onChange={(e) => setFilterStudent(e.target.value)}
+              disabled={!filterClass && classes.length > 0}
+              className="w-full px-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none disabled:opacity-50"
+            >
+              <option value="">Tất cả học sinh</option>
+              {students.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
         </div>
       )}
