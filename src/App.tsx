@@ -47,10 +47,9 @@ export default function App() {
     const unsubscribeSettings = onSnapshot(settingsRef, (doc) => {
       if (doc.exists()) {
         setRegistrationEnabled(doc.data().enabled ?? true);
-      } else {
-        // Initialize if doesn't exist
-        setDoc(settingsRef, { enabled: true }).catch(console.error);
       }
+    }, (error) => {
+      console.error("Error listening to settings:", error);
     });
 
     let userUnsubscribe: (() => void) | null = null;

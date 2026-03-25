@@ -248,6 +248,9 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       })) as Quiz[];
       setQuizzes(quizList);
       setLoading(false);
+    }, (error) => {
+      console.error("Error listening to quizzes:", error);
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -259,6 +262,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       if (doc.exists()) {
         setRegEnabled(doc.data().enabled ?? true);
       }
+    }, (error) => {
+      console.error("Error listening to settings:", error);
     });
     return () => unsubscribe();
   }, []);

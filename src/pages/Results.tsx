@@ -25,6 +25,9 @@ export default function Results({ user }: ResultsProps) {
       })) as Result[];
       setResults(resultList);
       setLoading(false);
+    }, (error) => {
+      console.error("Error listening to results:", error);
+      setLoading(false);
     });
 
     return () => unsubscribe();

@@ -26,6 +26,8 @@ export default function Leaderboard() {
     const quizzesUnsubscribe = onSnapshot(collection(db, 'quizzes'), (snapshot) => {
       const quizList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Quiz[];
       setQuizzes(quizList);
+    }, (error) => {
+      console.error("Error listening to quizzes:", error);
     });
 
     // Fetch results
@@ -33,6 +35,9 @@ export default function Leaderboard() {
     const resultsUnsubscribe = onSnapshot(resultsQuery, (snapshot) => {
       const resultList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Result[];
       setResults(resultList);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error listening to results:", error);
       setLoading(false);
     });
 

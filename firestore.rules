@@ -167,7 +167,7 @@ service cloud.firestore {
     }
 
     match /quizzes/{quizId} {
-      allow read: if isApproved();
+      allow read: if isAuthenticated();
       allow create: if isTeacher() && isValidQuiz(request.resource.data) && 
                       request.resource.data.createdBy == request.auth.uid;
       allow update: if isTeacher() && isValidQuiz(request.resource.data) && 
@@ -176,7 +176,7 @@ service cloud.firestore {
       allow delete: if isTeacher();
 
       match /questions/{questionId} {
-        allow read: if isApproved();
+        allow read: if isAuthenticated();
         allow create: if isTeacher() && isValidQuestion(request.resource.data);
         allow update: if isTeacher() && isValidQuestion(request.resource.data);
         allow delete: if isTeacher();
@@ -184,8 +184,13 @@ service cloud.firestore {
     }
 
     match /results/{resultId} {
-      allow read: if isApproved();
-      allow create: if isApproved() && request.resource.data.studentUid == request.auth.uid && isValidResult(request.resource.data);
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.studentUid == request.auth.uid && isValidResult(request.resource.data);
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }
