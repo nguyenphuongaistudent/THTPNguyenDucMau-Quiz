@@ -533,27 +533,27 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
         <div className="flex flex-col sm:flex-row gap-4">
           <button
             onClick={handleDownloadTemplate}
-            className="flex items-center justify-center gap-2 bg-white border border-stone-200 text-stone-700 py-3 px-6 rounded-xl hover:bg-stone-50 transition-all font-medium"
+            className="flex items-center justify-center gap-2 bg-white border border-stone-200 text-stone-700 py-2 px-4 rounded-lg hover:bg-stone-50 transition-all font-medium text-sm"
           >
-            <Download className="w-5 h-5" />
+            <Download className="w-4 h-4" />
             Tải mẫu Excel
           </button>
-          <label className="flex items-center justify-center gap-2 bg-white border border-stone-200 text-stone-700 py-3 px-6 rounded-xl hover:bg-stone-50 transition-all font-medium cursor-pointer">
-            {importing ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileUp className="w-5 h-5" />}
+          <label className="flex items-center justify-center gap-2 bg-white border border-stone-200 text-stone-700 py-2 px-4 rounded-lg hover:bg-stone-50 transition-all font-medium text-sm cursor-pointer">
+            {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />}
             Nhập từ Excel
             <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleImportExcel} disabled={importing} />
           </label>
           <button
             onClick={() => setIsAdding(true)}
-            className="flex items-center justify-center gap-2 bg-stone-900 text-white py-3 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium shadow-lg shadow-stone-200"
+            className="flex items-center justify-center gap-2 bg-stone-900 text-white py-2 px-4 rounded-lg hover:bg-stone-800 transition-all font-medium text-sm shadow-lg shadow-stone-200"
           >
-            <UserPlus className="w-5 h-5" />
+            <UserPlus className="w-4 h-4" />
             Thêm thành viên mới
           </button>
           
           {currentUser.role === 'admin' && (
-            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-stone-200 shadow-sm">
-              <span className="text-sm font-medium text-stone-600">Cho phép đăng ký:</span>
+            <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">
+              <span className="text-xs font-medium text-stone-600">Cho phép đăng ký:</span>
               <button
                 onClick={toggleRegistration}
                 disabled={updatingReg}

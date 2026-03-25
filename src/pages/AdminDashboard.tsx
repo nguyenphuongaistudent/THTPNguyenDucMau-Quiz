@@ -638,16 +638,16 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-stone-100 text-stone-600 py-3 px-6 rounded-xl hover:bg-stone-200 transition-all font-medium border border-stone-200"
+            className="flex items-center justify-center gap-2 bg-stone-100 text-stone-600 py-2 px-4 rounded-lg hover:bg-stone-200 transition-all font-medium border border-stone-200 text-sm"
           >
-            <Upload className="w-5 h-5" />
+            <Upload className="w-4 h-4" />
             Nhập đề thi (Word/JSON)
           </button>
           <button
             onClick={handleCreateNew}
-            className="flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 px-6 rounded-xl hover:bg-emerald-700 transition-all font-medium shadow-lg shadow-emerald-200"
+            className="flex items-center justify-center gap-2 bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition-all font-medium shadow-lg shadow-emerald-200 text-sm"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
             Tạo bài thi mới
           </button>
         </div>
