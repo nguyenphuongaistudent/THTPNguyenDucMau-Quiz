@@ -309,47 +309,28 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   const timeString = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
-      {/* Quiz Header */}
-      <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border border-stone-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-stone-900 rounded-xl flex items-center justify-center text-white font-serif italic font-bold">
-            {currentQuestionIndex + 1}
-          </div>
-          <div>
-            <h2 className="text-sm font-medium text-stone-900">{quiz.title}</h2>
-            <div className="w-48 h-1.5 bg-stone-100 rounded-full mt-1 overflow-hidden">
-              <div 
-                className="h-full bg-emerald-500 transition-all duration-300" 
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-xl font-mono font-bold text-lg",
-            timeLeft < 60 ? "bg-red-50 text-red-600 animate-pulse" : "bg-stone-50 text-stone-900"
-          )}>
-            <Clock className="w-5 h-5" />
-            {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-          </div>
-          
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="hidden sm:flex items-center gap-2 bg-emerald-600 text-white py-2 px-6 rounded-xl hover:bg-emerald-700 transition-all font-medium shadow-lg shadow-emerald-200 disabled:opacity-50"
-          >
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            Nộp bài
-          </button>
-        </div>
-      </div>
-
+    <div className="max-w-6xl mx-auto animate-in fade-in duration-500 pt-4">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Main Question Area */}
         <div className="lg:col-span-8 space-y-6 min-w-0">
+          {/* Quiz Header - Inside the column to match width */}
+          <div className="sticky top-[72px] z-40 bg-white/80 backdrop-blur-md border border-stone-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-stone-900 rounded-xl flex items-center justify-center text-white font-serif italic font-bold">
+                {currentQuestionIndex + 1}
+              </div>
+              <div>
+                <h2 className="text-sm font-medium text-stone-900">{quiz.title}</h2>
+                <div className="w-48 h-1.5 bg-stone-100 rounded-full mt-1 overflow-hidden">
+                  <div 
+                    className="h-full bg-emerald-500 transition-all duration-300" 
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Question Card */}
           <div className="bg-white rounded-3xl border border-stone-200 p-4 sm:p-6 md:p-8 shadow-sm min-h-[350px] flex flex-col text-left">
             <div className="flex-grow min-w-0 break-normal whitespace-pre-wrap text-left">
@@ -477,7 +458,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
 
         {/* Question Navigator Sidebar */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white rounded-3xl border border-stone-200 p-0 shadow-sm sticky top-20 overflow-hidden">
+          <div className="bg-white rounded-3xl border border-stone-200 p-0 shadow-sm sticky top-[72px] overflow-hidden">
             {/* Sidebar Header */}
             <div className="grid grid-cols-2 border-b border-stone-100">
               <div className="p-3 text-center border-r border-stone-100">
