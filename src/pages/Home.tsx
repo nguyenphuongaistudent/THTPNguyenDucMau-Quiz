@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType, updateUserEmail, updateUserPassword } from '../firebase';
+import { collection, onSnapshot, query, where, orderBy, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, updateUserEmail, updateUserPassword, reauthenticateUser } from '../firebase';
 import { Quiz, User, Result } from '../types';
-import { Clock, ChevronRight, BookOpen, Search, Filter, AlertCircle, CheckCircle2, UserCircle, School, Save, Loader2, XCircle, Settings } from 'lucide-react';
-import { setDoc, doc } from 'firebase/firestore';
+import { Clock, ChevronRight, BookOpen, Search, Filter, AlertCircle, CheckCircle2, UserCircle, School, Save, Loader2, XCircle, Settings, Key, Mail } from 'lucide-react';
 import { formatDuration, formatDate, cn } from '../lib/utils';
 
 interface HomeProps {
@@ -24,7 +23,8 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
     school: user.school || '', 
     class: user.class || '',
     email: user.email || '',
-    newPassword: ''
+    newPassword: '',
+    currentPassword: ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -113,27 +113,53 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!profileForm.currentPassword) {
+      alert('Vui lòng nhập mật khẩu hiện tại để xác nhận thay đổi.');
+      return;
+    }
+
     setSaving(true);
     try {
-      // Update email if changed
+      // 1. Re-authenticate first
+      await reauthenticateUser(profileForm.currentPassword);
+
+      // 2. Update Auth email if changed
       if (profileForm.email !== user.email) {
         await updateUserEmail(profileForm.email);
       }
       
-      // Update password if provided
+      // 3. Update Auth password if provided
       if (profileForm.newPassword) {
         if (profileForm.newPassword.length < 6) {
-          throw new Error('Mật khẩu phải có ít nhất 6 ký tự.');
+          throw new Error('Mật khẩu mới phải có ít nhất 6 ký tự.');
         }
         await updateUserPassword(profileForm.newPassword);
       }
 
+      // 4. Update Firestore fields (Admins can update all, members only email/metadata)
+      const updateData: any = {
+        email: profileForm.email,
+        updatedAt: serverTimestamp()
+      };
+
+      if (user.role === 'admin') {
+        updateData.displayName = profileForm.displayName;
+        updateData.school = profileForm.school;
+        updateData.class = profileForm.class;
+      }
+
+      await setDoc(doc(db, 'users', user.uid), updateData, { merge: true });
+
       setIsProfileOpen(false);
-      alert('Cập nhật thông tin thành công. Nếu bạn thay đổi email hoặc mật khẩu, hãy đăng nhập lại nếu cần thiết.');
+      setProfileForm(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
+      alert('Cập nhật thông tin thành công.');
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      if (error.code === 'auth/requires-recent-login') {
-        alert('Để thay đổi email hoặc mật khẩu, bạn cần đăng nhập lại gần đây. Hãy đăng xuất và đăng nhập lại trước khi thực hiện thay đổi này.');
+      if (error.code === 'auth/wrong-password') {
+        alert('Mật khẩu hiện tại không chính xác.');
+      } else if (error.code === 'auth/requires-recent-login') {
+        alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng xuất và đăng nhập lại.');
       } else {
         alert(error.message || 'Có lỗi xảy ra khi cập nhật thông tin.');
       }
@@ -337,7 +363,7 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleUpdateProfile} className="p-8 space-y-4">
+            <form onSubmit={handleUpdateProfile} className="p-8 space-y-4 max-h-[70vh] overflow-y-auto">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
                   <UserCircle className="w-4 h-4" /> Họ và tên
@@ -345,8 +371,15 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                 <input
                   type="text"
                   value={profileForm.displayName}
-                  readOnly
-                  className="w-full px-4 py-3 bg-stone-100 border border-stone-200 rounded-xl text-stone-500 cursor-not-allowed"
+                  onChange={(e) => setProfileForm({ ...profileForm, displayName: e.target.value })}
+                  readOnly={user.role !== 'admin'}
+                  className={cn(
+                    "w-full px-4 py-3 border rounded-xl transition-all",
+                    user.role === 'admin' 
+                      ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                      : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+                  )}
+                  placeholder="Nhập họ và tên"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -357,8 +390,15 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                   <input
                     type="text"
                     value={profileForm.school}
-                    readOnly
-                    className="w-full px-4 py-3 bg-stone-100 border border-stone-200 rounded-xl text-stone-500 cursor-not-allowed"
+                    onChange={(e) => setProfileForm({ ...profileForm, school: e.target.value })}
+                    readOnly={user.role !== 'admin'}
+                    className={cn(
+                      "w-full px-4 py-3 border rounded-xl transition-all",
+                      user.role === 'admin' 
+                        ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                        : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+                    )}
+                    placeholder="Nhập tên trường"
                   />
                 </div>
                 <div className="space-y-2">
@@ -368,8 +408,15 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                   <input
                     type="text"
                     value={profileForm.class}
-                    readOnly
-                    className="w-full px-4 py-3 bg-stone-100 border border-stone-200 rounded-xl text-stone-500 cursor-not-allowed"
+                    onChange={(e) => setProfileForm({ ...profileForm, class: e.target.value })}
+                    readOnly={user.role !== 'admin'}
+                    className={cn(
+                      "w-full px-4 py-3 border rounded-xl transition-all",
+                      user.role === 'admin' 
+                        ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                        : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+                    )}
+                    placeholder="Nhập tên lớp"
                   />
                 </div>
               </div>
@@ -378,7 +425,7 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
               
               <div className="space-y-2">
                 <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
-                  <Save className="w-4 h-4" /> Địa chỉ Email (Dùng để khôi phục mật khẩu)
+                  <Mail className="w-4 h-4" /> Địa chỉ Email
                 </label>
                 <input
                   type="email"
@@ -398,7 +445,24 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                   value={profileForm.newPassword}
                   onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
                   className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                  placeholder="Nhập mật khẩu mới (để trống nếu không đổi)"
+                  placeholder="Để trống nếu không muốn đổi"
+                />
+              </div>
+
+              <div className="h-px bg-stone-100 my-4" />
+
+              <div className="space-y-2 p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                <label className="text-sm font-bold text-amber-900 flex items-center gap-2">
+                  <Key className="w-4 h-4" /> Xác nhận mật khẩu hiện tại
+                </label>
+                <p className="text-[10px] text-amber-700 mb-2">Vui lòng nhập mật khẩu đang sử dụng để lưu các thay đổi.</p>
+                <input
+                  type="password"
+                  required
+                  value={profileForm.currentPassword}
+                  onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                  placeholder="Nhập mật khẩu hiện tại"
                 />
               </div>
 

@@ -39,7 +39,15 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const [newSchool, setNewSchool] = useState('');
   const [newClass, setNewClass] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('student');
-  const [editForm, setEditForm] = useState({ displayName: '', school: '', class: '', username: '' });
+  const [editForm, setEditForm] = useState({ 
+    displayName: '', 
+    school: '', 
+    class: '', 
+    username: '',
+    email: '',
+    role: 'student' as UserRole,
+    isApproved: true
+  });
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [regEnabled, setRegEnabled] = useState(true);
@@ -97,7 +105,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       displayName: user.displayName || '',
       school: user.school || '',
       class: user.class || '',
-      username: user.username || ''
+      username: user.username || '',
+      email: user.email || '',
+      role: user.role || 'student',
+      isApproved: user.isApproved ?? true
     });
   };
 
@@ -903,7 +914,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleUpdateUser} className="p-8 space-y-4">
+            <form onSubmit={handleUpdateUser} className="p-8 space-y-4 max-h-[70vh] overflow-y-auto">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
                   <UserCircle className="w-4 h-4" /> Họ và tên
@@ -916,42 +927,91 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
                   placeholder="Nhập họ và tên"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
-                  <UserCircle className="w-4 h-4" /> Tên đăng nhập
-                </label>
-                <input
-                  type="text"
-                  value={editForm.username}
-                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
-                  placeholder="Nhập tên đăng nhập"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <UserCircle className="w-4 h-4" /> Tên đăng nhập
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.username}
+                    onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                    placeholder="Nhập tên đăng nhập"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <Mail className="w-4 h-4" /> Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                    placeholder="Nhập email"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
-                  <School className="w-4 h-4" /> Trường học
-                </label>
-                <input
-                  type="text"
-                  value={editForm.school}
-                  onChange={(e) => setEditForm({ ...editForm, school: e.target.value })}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
-                  placeholder="Nhập tên trường"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <School className="w-4 h-4" /> Trường học
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.school}
+                    onChange={(e) => setEditForm({ ...editForm, school: e.target.value })}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                    placeholder="Nhập tên trường"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" /> Lớp học
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.class}
+                    onChange={(e) => setEditForm({ ...editForm, class: e.target.value })}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                    placeholder="Nhập tên lớp"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" /> Lớp học
-                </label>
-                <input
-                  type="text"
-                  value={editForm.class}
-                  onChange={(e) => setEditForm({ ...editForm, class: e.target.value })}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
-                  placeholder="Nhập tên lớp"
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <Shield className="w-4 h-4" /> Vai trò
+                  </label>
+                  <select
+                    value={editForm.role}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  >
+                    <option value="student">Học sinh</option>
+                    <option value="student-vip">Học sinh-VIP</option>
+                    <option value="teacher">Giáo viên</option>
+                    <option value="admin">Quản trị viên</option>
+                    <option value="guest">Khách</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" /> Trạng thái
+                  </label>
+                  <select
+                    value={editForm.isApproved ? 'true' : 'false'}
+                    onChange={(e) => setEditForm({ ...editForm, isApproved: e.target.value === 'true' })}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  >
+                    <option value="true">Đã phê duyệt</option>
+                    <option value="false">Chờ phê duyệt</option>
+                  </select>
+                </div>
               </div>
+
               <div className="pt-4 flex gap-3">
                 <button
                   type="button"
