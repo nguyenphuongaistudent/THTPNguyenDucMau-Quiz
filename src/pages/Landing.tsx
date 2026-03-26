@@ -27,7 +27,7 @@ export default function Landing({ onLogin, onRegister, registrationEnabled }: La
           <div className="flex items-center gap-4">
             <button 
               onClick={onLogin}
-              className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors"
+              className="px-5 py-2 rounded-full text-sm font-bold text-emerald-600 border-2 border-emerald-600 hover:bg-emerald-600 hover:text-white transition-all duration-300 shadow-sm hover:shadow-emerald-100"
             >
               Đăng nhập
             </button>
@@ -50,7 +50,7 @@ export default function Landing({ onLogin, onRegister, registrationEnabled }: La
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold uppercase tracking-widest mb-8 border border-emerald-100">
               <Shield className="w-3 h-3" /> Nền tảng bảo mật & tin cậy
             </div>
-            <h1 className="text-5xl md:text-7xl font-serif font-medium text-stone-900 mb-8 italic leading-tight">
+            <h1 className="text-3xl md:text-5xl font-sans font-bold text-stone-900 mb-8 tracking-tight leading-tight">
               Nâng tầm kiến thức với <span className="text-emerald-600">Nguyễn Đức Mậu-QuizPro</span>
             </h1>
             <p className="text-xl text-stone-500 mb-12 leading-relaxed max-w-2xl mx-auto">
@@ -67,9 +67,9 @@ export default function Landing({ onLogin, onRegister, registrationEnabled }: La
               )}
               <button 
                 onClick={onLogin}
-                className="w-full sm:w-auto bg-white text-stone-900 border border-stone-200 px-8 py-4 rounded-2xl font-medium hover:bg-stone-50 transition-all"
+                className="w-full sm:w-auto bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-200 flex items-center justify-center gap-2"
               >
-                {registrationEnabled ? 'Xem các bài thi mẫu' : 'Đăng nhập ngay'}
+                {registrationEnabled ? 'Xem các bài thi mẫu' : 'Đăng nhập ngay'} <ArrowRight className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -110,28 +110,6 @@ export default function Landing({ onLogin, onRegister, registrationEnabled }: La
           </div>
         </section>
 
-        {/* Social Proof */}
-        <section className="py-20 px-4">
-          <div className="max-w-7xl mx-auto bg-stone-900 rounded-[3rem] p-12 md:p-20 text-center text-white relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
-              <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle,white_1px,transparent_1px)] [background-size:40px_40px]" />
-            </div>
-            <div className="relative z-10">
-              <h2 className="text-3xl md:text-5xl font-serif italic mb-8">Sẵn sàng để bắt đầu?</h2>
-              <p className="text-stone-400 mb-12 max-w-xl mx-auto">
-                {registrationEnabled 
-                  ? 'Đăng ký ngay hôm nay và trải nghiệm cách thức thi trắc nghiệm hoàn toàn mới.'
-                  : 'Đăng nhập ngay hôm nay để tiếp tục hành trình chinh phục kiến thức.'}
-              </p>
-              <button 
-                onClick={registrationEnabled ? onRegister : onLogin}
-                className="bg-emerald-500 text-stone-900 px-10 py-4 rounded-2xl font-bold hover:bg-emerald-400 transition-all inline-flex items-center gap-2"
-              >
-                {registrationEnabled ? 'Đăng ký tài khoản' : 'Đăng nhập ngay'} <CheckCircle className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </section>
       </main>
 
       <footer className="py-12 border-t border-stone-200">
