@@ -386,14 +386,14 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 <button 
                   onClick={toggleReviewed}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-bold transition-all border",
+                    "flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-bold transition-all border shadow-sm",
                     reviewed[currentQuestionIndex] 
-                      ? "bg-[#a569bd] text-white border-[#a569bd]" 
-                      : "bg-white text-stone-400 border-stone-200 hover:border-stone-300"
+                      ? "bg-[#8e44ad] text-white border-[#8e44ad] ring-2 ring-purple-200" 
+                      : "bg-[#a569bd] text-white border-[#a569bd] hover:bg-[#9b59b6]"
                   )}
                 >
                   <AlertCircle className="w-3 h-3" />
-                  Kiểm tra lại
+                  Sẽ kiểm tra lại sau
                 </button>
               </div>
               <RichText 
@@ -615,7 +615,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-[#a569bd]" />
-                  <span className="text-sm text-stone-700 font-medium">Câu cần kiểm tra lại</span>
+                  <span className="text-sm text-stone-700 font-medium">Câu sẽ kiểm tra lại sau</span>
                 </div>
               </div>
             </div>

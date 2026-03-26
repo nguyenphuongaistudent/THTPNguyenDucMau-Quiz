@@ -135,8 +135,16 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                       {idx + 1}
                     </div>
                     <div className="flex-grow space-y-4">
-                      <div className="text-xs font-bold text-stone-400 uppercase tracking-widest">
-                        {q.type === 'multiple_choice' ? 'Phần I: Câu hỏi nhiều lựa chọn' : 'Phần II: Câu hỏi đúng sai'}
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-bold text-stone-400 uppercase tracking-widest">
+                          {q.type === 'multiple_choice' ? 'Phần I: Câu hỏi nhiều lựa chọn' : 'Phần II: Câu hỏi đúng sai'}
+                        </div>
+                        {(userAnswer === undefined || userAnswer === null || (Array.isArray(userAnswer) && userAnswer.every(v => v === null))) && (
+                          <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-amber-200">
+                            <AlertCircle className="w-3 h-3" />
+                            Chưa chọn đáp án
+                          </div>
+                        )}
                       </div>
                       <RichText 
                         className="text-lg font-medium text-stone-900"
@@ -236,16 +244,10 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                       </div>
 
                       {!isAdminOrTeacher && !showAnswers[q.id] && (
-                        <div className="flex items-center justify-between">
-                          {(userAnswer === undefined || userAnswer === null || (Array.isArray(userAnswer) && userAnswer.every(v => v === null))) && (
-                            <div className="flex items-center gap-2 text-amber-600 font-bold text-sm">
-                              <AlertCircle className="w-4 h-4" />
-                              Chưa chọn
-                            </div>
-                          )}
+                        <div className="flex items-center justify-end">
                           <button
                             onClick={() => setShowAnswers(prev => ({ ...prev, [q.id]: true }))}
-                            className="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition-colors ml-auto"
+                            className="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                           >
                             Hiển thị đáp án và giải thích
                           </button>
