@@ -11,7 +11,7 @@
         "displayName": { "type": "string", "description": "Tên hiển thị" },
         "school": { "type": "string", "description": "Trường học" },
         "class": { "type": "string", "description": "Lớp học" },
-        "role": { "type": "string", "enum": ["admin", "teacher", "student", "student-vip"], "description": "Vai trò người dùng" },
+        "role": { "type": "string", "enum": ["admin", "teacher", "student", "student-vip", "guest"], "description": "Vai trò người dùng" },
         "isApproved": { "type": "boolean", "description": "Trạng thái phê duyệt tài khoản" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo tài khoản" }
       },
@@ -33,8 +33,13 @@
         "isActive": { "type": "boolean", "description": "Trạng thái đề thi" },
         "allowedRoles": {
           "type": "array",
-          "items": { "type": "string", "enum": ["student", "guest"] },
+          "items": { "type": "string", "enum": ["student", "student-vip", "guest"] },
           "description": "Các vai trò được phép tham gia thi"
+        },
+        "reviewRoles": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["student", "student-vip", "guest"] },
+          "description": "Các vai trò được phép xem lại bài thi"
         }
       },
       "required": ["title", "duration", "createdBy"]

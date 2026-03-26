@@ -65,6 +65,7 @@ export const parseWord = async (arrayBuffer: ArrayBuffer): Promise<ImportedQuiz>
     const optionPattern = /^([A-Z]|[a-z])\s*[\.\:\/\)]|^[\(\[]([A-Z]|[a-z])[\)\]]\s*[\.\:\/\)]?|^[\(\[]([A-Z]|[a-z])[\)\]]/i;
     const answerPattern = /^(Answer|Đáp án|Dap an|Chọn|Đáp án đúng|Dap an dung)\s*[\.\:]\s*(.*)/i;
     const metadataPattern = /^(title|tiêu đề|tên đề thi|tên bài thi|subject|môn học|môn|topic|chủ đề|loại đề|duration|thời gian|thời lượng|type|loại câu hỏi)[\.\:]\s*(.*)/i;
+    const explanationPattern = /^(Explanation|Giải thích|Giai thich|Lời giải|Lời giải chi tiết)[\.\:]\s*(.*)/i;
 
     for (const el of elements) {
       const text = el.textContent?.trim() || '';
@@ -181,6 +182,13 @@ export const parseWord = async (arrayBuffer: ArrayBuffer): Promise<ImportedQuiz>
         continue;
       }
 
+      // Detect explanation
+      const explanationMatch = text.match(explanationPattern);
+      if (parsingQuestions && currentQuestion && explanationMatch) {
+        currentQuestion.explanation = explanationMatch[2].trim();
+        continue;
+      }
+
       // Append to current context
       if (parsingQuestions && currentQuestion) {
         if (currentOptionIndex >= 0 && currentQuestion.options) {
@@ -260,6 +268,7 @@ B. Lựa chọn 2
 C. Lựa chọn 3
 D. Lựa chọn 4
 Answer: B
+Explanation: 1 + 1 = 2, nên chọn B.
 
 Type: true_false
 2. Xét các mệnh đề sau về số nguyên tố:
@@ -268,5 +277,6 @@ b. Số 1 là số nguyên tố
 c. Mọi số nguyên tố đều là số lẻ
 d. Có vô số số nguyên tố
 Answer: Đúng, Sai, Sai, Đúng
+Explanation: Số 1 không phải số nguyên tố. Số 2 là số nguyên tố chẵn duy nhất.
 `;
 };

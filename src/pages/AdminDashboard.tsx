@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import ReactQuill from 'react-quill-new';
 import * as XLSX from 'xlsx';
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
+import { saveAs } from 'file-saver';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, writeBatch, deleteField, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, Question, User, QuestionType } from '../types';
@@ -596,39 +598,90 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     }
   };
 
-  const handleDownloadSample = () => {
-    // A simple sample structure for Word import
-    const sampleContent = `Tiêu đề: Đề thi mẫu THPT
-Môn: Toán
-Thời gian: 90
-Chủ đề: regular
+  const handleDownloadSample = async () => {
+    try {
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: "Tiêu đề: Đề thi mẫu THPT",
+              heading: HeadingLevel.HEADING_1,
+              alignment: AlignmentType.CENTER,
+            }),
+            new Paragraph({
+              text: "Môn: Toán",
+              alignment: AlignmentType.CENTER,
+            }),
+            new Paragraph({
+              text: "Thời gian: 90",
+              alignment: AlignmentType.CENTER,
+            }),
+            new Paragraph({
+              text: "Chủ đề: regular",
+              alignment: AlignmentType.CENTER,
+            }),
+            new Paragraph({ text: "" }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Phần I. Câu hỏi nhiều lựa chọn", bold: true }),
+              ],
+            }),
+            new Paragraph({
+              text: "Câu 1. Nội dung câu hỏi trắc nghiệm...",
+            }),
+            new Paragraph({ text: "A. Phương án A" }),
+            new Paragraph({ text: "B. Phương án B" }),
+            new Paragraph({ text: "C. Phương án C" }),
+            new Paragraph({ text: "D. Phương án D" }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Đáp án: ", bold: true }),
+                new TextRun("A"),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Giải thích: ", bold: true, italics: true }),
+                new TextRun("Đây là phần giải thích cho câu hỏi trắc nghiệm."),
+              ],
+            }),
+            new Paragraph({ text: "" }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Phần II. Câu hỏi đúng sai", bold: true }),
+              ],
+            }),
+            new Paragraph({
+              text: "Câu 1. Nội dung câu hỏi đúng sai...",
+            }),
+            new Paragraph({ text: "a. Ý thứ nhất" }),
+            new Paragraph({ text: "b. Ý thứ hai" }),
+            new Paragraph({ text: "c. Ý thứ ba" }),
+            new Paragraph({ text: "d. Ý thứ tư" }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Đáp án: ", bold: true }),
+                new TextRun("Đúng, Sai, Đúng, Đúng"),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Giải thích: ", bold: true, italics: true }),
+                new TextRun("Đây là phần giải thích cho câu hỏi đúng sai."),
+              ],
+            }),
+          ],
+        }],
+      });
 
-Phần I. Câu hỏi nhiều lựa chọn
-Câu 1. Nội dung câu hỏi trắc nghiệm...
-A. Phương án A
-B. Phương án B
-C. Phương án C
-D. Phương án D
-Đáp án: A
-
-Phần II. Câu hỏi đúng sai
-Câu 1. Nội dung câu hỏi đúng sai...
-a. Ý thứ nhất
-b. Ý thứ hai
-c. Ý thứ ba
-d. Ý thứ tư
-Đáp án: Đúng, Sai, Đúng, Đúng`;
-
-    const blob = new Blob([sampleContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'Mau_de_thi.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    alert('Đã tải xuống file mẫu định dạng văn bản. Bạn có thể soạn thảo tương tự trong file Word và lưu lại để nhập vào hệ thống.');
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, 'Mau_de_thi.docx');
+      toast.success('Đã tải xuống file mẫu định dạng Word (.docx). Bạn có thể soạn thảo tương tự trong file này để nhập vào hệ thống.');
+    } catch (error) {
+      console.error('Error generating Word sample:', error);
+      toast.error('Có lỗi xảy ra khi tạo file mẫu.');
+    }
   };
 
   const handleDeleteQuiz = async (id: string) => {

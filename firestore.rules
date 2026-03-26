@@ -102,7 +102,7 @@ service cloud.firestore {
     }
 
     function isValidQuiz(data) {
-      return hasOnlyAllowedFields(['id', 'title', 'description', 'subject', 'topic', 'duration', 'maxAttempts', 'createdBy', 'createdAt', 'isActive', 'updatedAt', 'allowedRoles']) &&
+      return hasOnlyAllowedFields(['id', 'title', 'description', 'subject', 'topic', 'duration', 'maxAttempts', 'createdBy', 'createdAt', 'isActive', 'updatedAt', 'allowedRoles', 'reviewRoles']) &&
              (!('id' in data) || data.id is string) &&
              (!('title' in data) || (data.title is string && data.title.size() > 0 && data.title.size() <= 500)) &&
              (!('description' in data) || (data.description is string && data.description.size() <= 10000)) &&
@@ -112,7 +112,8 @@ service cloud.firestore {
              (!('maxAttempts' in data) || (data.maxAttempts is number && data.maxAttempts >= 0 && data.maxAttempts <= 1000)) &&
              (!('createdBy' in data) || (data.createdBy is string)) &&
              (!('isActive' in data) || (data.isActive is bool)) &&
-             (!('allowedRoles' in data) || (data.allowedRoles is list && data.allowedRoles.size() >= 1 && data.allowedRoles.size() <= 10));
+             (!('allowedRoles' in data) || (data.allowedRoles is list && data.allowedRoles.size() >= 1 && data.allowedRoles.size() <= 10)) &&
+             (!('reviewRoles' in data) || (data.reviewRoles is list && data.reviewRoles.size() >= 1 && data.reviewRoles.size() <= 10));
     }
 
     function isValidQuestion(data) {
