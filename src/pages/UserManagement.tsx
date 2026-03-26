@@ -369,7 +369,21 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       const finalSchool = newSchool.trim() || 'Trường Tự do';
       const finalClass = newClass.trim() || 'Tự do';
 
-      await signUpWithEmail(newEmail, newPassword, newDisplayName, newUsername, finalSchool, finalClass, newRole);
+      // Create a pre-assigned user document in Firestore
+      // This allows the user to log in with the password without immediate Auth creation/verification
+      const uid = `pre_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await setDoc(doc(db, 'users', uid), {
+        uid: uid,
+        email: newEmail.trim().toLowerCase(),
+        username: newUsername.trim().toLowerCase(),
+        password: newPassword, // Store password for first login
+        displayName: newDisplayName.trim(),
+        school: finalSchool,
+        class: finalClass,
+        role: newRole,
+        isApproved: true,
+        createdAt: serverTimestamp(),
+      });
       
       setNewEmail('');
       setNewUsername('');
@@ -379,10 +393,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       setNewClass('');
       setNewRole('student');
       setIsAdding(false);
-      toast.success('Thêm người dùng thành công.');
+      toast.success('Đã cấp tài khoản thành công. Thành viên có thể đăng nhập bằng tên đăng nhập và mật khẩu đã tạo.');
     } catch (error: any) {
       console.error('Error adding user:', error);
-      toast.error(error.message || 'Có lỗi xảy ra khi thêm người dùng.');
+      toast.error(error.message || 'Có lỗi xảy ra khi cấp tài khoản.');
     } finally {
       setSaving(false);
     }

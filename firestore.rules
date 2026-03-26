@@ -166,7 +166,8 @@ service cloud.firestore {
       allow update: if isAuthenticated() && 
         (isAdmin() || 
          (isOwner(userId) && isValidUser(request.resource.data) && 
-          (request.resource.data.role == resource.data.role || request.auth.token.email == "nguyenphuongaistudent@gmail.com")
+          (request.resource.data.role == resource.data.role || request.auth.token.email == "nguyenphuongaistudent@gmail.com") &&
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email', 'updatedAt', 'lastLoginAt']) || isAdmin())
          ) ||
          (isTeacher() && isValidUser(request.resource.data) && resource.data.role != 'admin')
         );

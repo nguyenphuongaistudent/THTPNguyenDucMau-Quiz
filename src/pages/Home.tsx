@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { db, handleFirestoreError, OperationType, updateUserEmail, updateUserPassword } from '../firebase';
 import { Quiz, User, Result } from '../types';
 import { Clock, ChevronRight, BookOpen, Search, Filter, AlertCircle, CheckCircle2, UserCircle, School, Save, Loader2, XCircle, Settings } from 'lucide-react';
 import { setDoc, doc } from 'firebase/firestore';
@@ -19,7 +19,13 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
   const [selectedSubject, setSelectedSubject] = useState<string | 'all'>('all');
   const [selectedTopic, setSelectedTopic] = useState<string | 'all'>('all');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [profileForm, setProfileForm] = useState({ displayName: user.displayName || '', school: user.school || '', class: user.class || '' });
+  const [profileForm, setProfileForm] = useState({ 
+    displayName: user.displayName || '', 
+    school: user.school || '', 
+    class: user.class || '',
+    email: user.email || '',
+    newPassword: ''
+  });
   const [saving, setSaving] = useState(false);
 
   const subjects = ['Toán', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh', 'Lịch sử', 'Địa lý', 'GDCD', 'Ngữ văn', 'Tin học'];
@@ -109,13 +115,28 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
     e.preventDefault();
     setSaving(true);
     try {
-      await setDoc(doc(db, 'users', user.uid), {
-        ...profileForm
-      }, { merge: true });
+      // Update email if changed
+      if (profileForm.email !== user.email) {
+        await updateUserEmail(profileForm.email);
+      }
+      
+      // Update password if provided
+      if (profileForm.newPassword) {
+        if (profileForm.newPassword.length < 6) {
+          throw new Error('Mật khẩu phải có ít nhất 6 ký tự.');
+        }
+        await updateUserPassword(profileForm.newPassword);
+      }
+
       setIsProfileOpen(false);
-    } catch (error) {
+      alert('Cập nhật thông tin thành công. Nếu bạn thay đổi email hoặc mật khẩu, hãy đăng nhập lại nếu cần thiết.');
+    } catch (error: any) {
       console.error('Error updating profile:', error);
-      alert('Có lỗi xảy ra khi cập nhật thông tin.');
+      if (error.code === 'auth/requires-recent-login') {
+        alert('Để thay đổi email hoặc mật khẩu, bạn cần đăng nhập lại gần đây. Hãy đăng xuất và đăng nhập lại trước khi thực hiện thay đổi này.');
+      } else {
+        alert(error.message || 'Có lỗi xảy ra khi cập nhật thông tin.');
+      }
     } finally {
       setSaving(false);
     }
@@ -324,35 +345,63 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                 <input
                   type="text"
                   value={profileForm.displayName}
-                  onChange={(e) => setProfileForm({ ...profileForm, displayName: e.target.value })}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
-                  placeholder="Nhập họ và tên"
+                  readOnly
+                  className="w-full px-4 py-3 bg-stone-100 border border-stone-200 rounded-xl text-stone-500 cursor-not-allowed"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <School className="w-4 h-4" /> Trường học
+                  </label>
+                  <input
+                    type="text"
+                    value={profileForm.school}
+                    readOnly
+                    className="w-full px-4 py-3 bg-stone-100 border border-stone-200 rounded-xl text-stone-500 cursor-not-allowed"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" /> Lớp học
+                  </label>
+                  <input
+                    type="text"
+                    value={profileForm.class}
+                    readOnly
+                    className="w-full px-4 py-3 bg-stone-100 border border-stone-200 rounded-xl text-stone-500 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+              
+              <div className="h-px bg-stone-100 my-4" />
+              
               <div className="space-y-2">
                 <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
-                  <School className="w-4 h-4" /> Trường học
+                  <Save className="w-4 h-4" /> Địa chỉ Email (Dùng để khôi phục mật khẩu)
                 </label>
                 <input
-                  type="text"
-                  value={profileForm.school}
-                  onChange={(e) => setProfileForm({ ...profileForm, school: e.target.value })}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
-                  placeholder="Nhập tên trường"
+                  type="email"
+                  value={profileForm.email}
+                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  placeholder="Nhập email mới"
                 />
               </div>
+              
               <div className="space-y-2">
                 <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" /> Lớp học
+                  <Settings className="w-4 h-4" /> Mật khẩu mới
                 </label>
                 <input
-                  type="text"
-                  value={profileForm.class}
-                  onChange={(e) => setProfileForm({ ...profileForm, class: e.target.value })}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
-                  placeholder="Nhập tên lớp"
+                  type="password"
+                  value={profileForm.newPassword}
+                  onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  placeholder="Nhập mật khẩu mới (để trống nếu không đổi)"
                 />
               </div>
+
               <div className="pt-4 flex gap-3">
                 <button
                   type="button"
