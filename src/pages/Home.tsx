@@ -428,11 +428,17 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                   <Mail className="w-4 h-4" /> Địa chỉ Email
                 </label>
                 <input
-                  type="email"
-                  value={profileForm.email}
-                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                  placeholder="Nhập email mới"
+                   type="email"
+                   value={profileForm.email}
+                   onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                   readOnly={user.role !== 'admin'}
+                   className={cn(
+                     "w-full px-4 py-3 border rounded-xl transition-all",
+                     user.role === 'admin' 
+                       ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                       : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+                   )}
+                   placeholder="Nhập email mới"
                 />
               </div>
               
@@ -441,30 +447,38 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                   <Settings className="w-4 h-4" /> Mật khẩu mới
                 </label>
                 <input
-                  type="password"
-                  value={profileForm.newPassword}
-                  onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                  placeholder="Để trống nếu không muốn đổi"
+                   type="password"
+                   value={profileForm.newPassword}
+                   onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                   readOnly={user.role !== 'admin'}
+                   className={cn(
+                     "w-full px-4 py-3 border rounded-xl transition-all",
+                     user.role === 'admin' 
+                       ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                       : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+                   )}
+                   placeholder="Để trống nếu không muốn đổi"
                 />
               </div>
 
               <div className="h-px bg-stone-100 my-4" />
 
-              <div className="space-y-2 p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                <label className="text-sm font-bold text-amber-900 flex items-center gap-2">
-                  <Key className="w-4 h-4" /> Xác nhận mật khẩu hiện tại
-                </label>
-                <p className="text-[10px] text-amber-700 mb-2">Vui lòng nhập mật khẩu đang sử dụng để lưu các thay đổi.</p>
-                <input
-                  type="password"
-                  required
-                  value={profileForm.currentPassword}
-                  onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                  placeholder="Nhập mật khẩu hiện tại"
-                />
-              </div>
+              {user.role === 'admin' && (
+                <div className="space-y-2 p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                  <label className="text-sm font-bold text-amber-900 flex items-center gap-2">
+                    <Key className="w-4 h-4" /> Xác nhận mật khẩu hiện tại
+                  </label>
+                  <p className="text-[10px] text-amber-700 mb-2">Vui lòng nhập mật khẩu đang sử dụng để lưu các thay đổi.</p>
+                  <input
+                    type="password"
+                    required
+                    value={profileForm.currentPassword}
+                    onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
+                    className="w-full px-4 py-3 bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    placeholder="Nhập mật khẩu hiện tại"
+                  />
+                </div>
+              )}
 
               <div className="pt-4 flex gap-3">
                 <button
@@ -474,14 +488,16 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                 >
                   Hủy bỏ
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-grow flex items-center justify-center gap-2 bg-stone-900 text-white py-3 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium disabled:opacity-50"
-                >
-                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                  Cập nhật
-                </button>
+                {user.role === 'admin' && (
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-grow flex items-center justify-center gap-2 bg-stone-900 text-white py-3 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium disabled:opacity-50"
+                  >
+                    {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                    Cập nhật
+                  </button>
+                )}
               </div>
             </form>
           </div>

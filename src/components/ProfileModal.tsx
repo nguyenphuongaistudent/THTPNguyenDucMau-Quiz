@@ -3,6 +3,7 @@ import { UserCircle, School, BookOpen, Save, Loader2, XCircle, X, Mail, Lock, Ke
 import { setDoc, doc } from 'firebase/firestore';
 import { db, updateUserEmail, updateUserPassword } from '../firebase';
 import { User } from '../types';
+import { cn } from '../lib/utils';
 
 interface ProfileModalProps {
   user: User;
@@ -83,7 +84,13 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
               type="text"
               value={profileForm.displayName}
               onChange={(e) => setProfileForm({ ...profileForm, displayName: e.target.value })}
-              className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+              readOnly={user.role !== 'admin'}
+              className={cn(
+                "w-full px-4 py-3 border rounded-xl transition-all",
+                user.role === 'admin' 
+                  ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                  : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+              )}
               placeholder="Nhập họ và tên"
             />
           </div>
@@ -95,7 +102,13 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
               type="text"
               value={profileForm.school}
               onChange={(e) => setProfileForm({ ...profileForm, school: e.target.value })}
-              className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+              readOnly={user.role !== 'admin'}
+              className={cn(
+                "w-full px-4 py-3 border rounded-xl transition-all",
+                user.role === 'admin' 
+                  ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                  : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+              )}
               placeholder="Nhập tên trường"
             />
           </div>
@@ -107,7 +120,13 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
               type="email"
               value={profileForm.email}
               onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-              className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+              readOnly={user.role !== 'admin'}
+              className={cn(
+                "w-full px-4 py-3 border rounded-xl transition-all",
+                user.role === 'admin' 
+                  ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                  : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+              )}
               placeholder="example@gmail.com"
             />
           </div>
@@ -123,7 +142,13 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  readOnly={user.role !== 'admin'}
+                  className={cn(
+                    "w-full px-4 py-3 border rounded-xl transition-all",
+                    user.role === 'admin' 
+                      ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                      : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+                  )}
                   placeholder="••••••••"
                 />
               </div>
@@ -135,7 +160,13 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:border-stone-500 transition-all"
+                  readOnly={user.role !== 'admin'}
+                  className={cn(
+                    "w-full px-4 py-3 border rounded-xl transition-all",
+                    user.role === 'admin' 
+                      ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                      : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+                  )}
                   placeholder="••••••••"
                 />
               </div>
@@ -149,14 +180,16 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
             >
               Hủy bỏ
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-grow flex items-center justify-center gap-2 bg-stone-900 text-white py-3 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium disabled:opacity-50"
-            >
-              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              Cập nhật
-            </button>
+            {user.role === 'admin' && (
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-grow flex items-center justify-center gap-2 bg-stone-900 text-white py-3 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                Cập nhật
+              </button>
+            )}
           </div>
         </form>
       </div>

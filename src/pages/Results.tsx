@@ -393,6 +393,7 @@ export default function Results({ user }: ResultsProps) {
         <ReviewQuiz 
           result={reviewingResult} 
           onClose={() => setReviewingResult(null)} 
+          user={user}
         />
       )}
     </div>

@@ -9,12 +9,16 @@ import RichText from './RichText';
 interface ReviewQuizProps {
   result: Result;
   onClose: () => void;
+  user: User;
 }
 
-export default function ReviewQuiz({ result, onClose }: ReviewQuizProps) {
+export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({});
+
+  const isAdminOrTeacher = user.role === 'admin' || user.role === 'teacher';
 
   useEffect(() => {
     const fetchQuizData = async () => {
@@ -76,13 +80,15 @@ export default function ReviewQuiz({ result, onClose }: ReviewQuizProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={handlePrint}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200"
-            >
-              <Printer className="w-4 h-4" />
-              Xuất PDF
-            </button>
+            {isAdminOrTeacher && (
+              <button 
+                onClick={handlePrint}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200"
+              >
+                <Printer className="w-4 h-4" />
+                Xuất PDF
+              </button>
+            )}
             <button 
               onClick={onClose}
               className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-xl transition-all"
@@ -164,8 +170,17 @@ export default function ReviewQuiz({ result, onClose }: ReviewQuizProps) {
                                   {String.fromCharCode(65 + oIdx)}
                                 </div>
                                 <RichText className="text-stone-700" content={opt} />
-                                {isCorrectChoice && <CheckCircle2 className="w-5 h-5 text-emerald-500 ml-auto" />}
-                                {isUserChoice && !isCorrectChoice && <XCircle className="w-5 h-5 text-red-500 ml-auto" />}
+                                {(isAdminOrTeacher || showAnswers[q.id]) && (
+                                  <>
+                                    {isCorrectChoice && <CheckCircle2 className="w-5 h-5 text-emerald-500 ml-auto" />}
+                                    {isUserChoice && !isCorrectChoice && <XCircle className="w-5 h-5 text-red-500 ml-auto" />}
+                                  </>
+                                )}
+                                {!isAdminOrTeacher && !showAnswers[q.id] && isUserChoice && (
+                                  <div className="ml-auto">
+                                    {isCorrect ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-red-500" />}
+                                  </div>
+                                )}
                               </div>
                             );
                           })
@@ -192,20 +207,32 @@ export default function ReviewQuiz({ result, onClose }: ReviewQuizProps) {
                                     <div className={cn(
                                       "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
                                       userVal === true 
-                                        ? (correctVal === true ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white")
-                                        : (correctVal === true ? "border-emerald-200" : "border-stone-200")
+                                        ? ((isAdminOrTeacher || showAnswers[q.id]) 
+                                            ? (correctVal === true ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white")
+                                            : (isSubCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white"))
+                                        : ((isAdminOrTeacher || showAnswers[q.id]) && correctVal === true ? "border-emerald-200" : "border-stone-200")
                                     )}>
-                                      {userVal === true && (correctVal === true ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)}
+                                      {userVal === true && (
+                                        (isAdminOrTeacher || showAnswers[q.id]) 
+                                          ? (correctVal === true ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)
+                                          : (isSubCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)
+                                      )}
                                     </div>
                                   </div>
                                   <div className="flex justify-center">
                                     <div className={cn(
                                       "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
                                       userVal === false 
-                                        ? (correctVal === false ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white")
-                                        : (correctVal === false ? "border-emerald-200" : "border-stone-200")
+                                        ? ((isAdminOrTeacher || showAnswers[q.id]) 
+                                            ? (correctVal === false ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white")
+                                            : (isSubCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white"))
+                                        : ((isAdminOrTeacher || showAnswers[q.id]) && correctVal === false ? "border-emerald-200" : "border-stone-200")
                                     )}>
-                                      {userVal === false && (correctVal === false ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)}
+                                      {userVal === false && (
+                                        (isAdminOrTeacher || showAnswers[q.id]) 
+                                          ? (correctVal === false ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)
+                                          : (isSubCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -215,7 +242,24 @@ export default function ReviewQuiz({ result, onClose }: ReviewQuizProps) {
                         )}
                       </div>
 
-                      {q.explanation && (
+                      {!isAdminOrTeacher && !showAnswers[q.id] && (
+                        <div className="flex items-center justify-between">
+                          {(userAnswer === undefined || userAnswer === null || (Array.isArray(userAnswer) && userAnswer.every(v => v === null))) && (
+                            <div className="flex items-center gap-2 text-amber-600 font-bold text-sm">
+                              <AlertCircle className="w-4 h-4" />
+                              Chưa chọn
+                            </div>
+                          )}
+                          <button
+                            onClick={() => setShowAnswers(prev => ({ ...prev, [q.id]: true }))}
+                            className="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition-colors ml-auto"
+                          >
+                            Hiển thị đáp án và giải thích
+                          </button>
+                        </div>
+                      )}
+
+                      {(isAdminOrTeacher || showAnswers[q.id]) && q.explanation && (
                         <div className="p-4 bg-stone-100 rounded-2xl border border-stone-200">
                           <p className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                             <AlertCircle className="w-3 h-3" />
