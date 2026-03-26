@@ -6,8 +6,9 @@ import { saveAs } from 'file-saver';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, writeBatch, deleteField, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, Question, User, QuestionType, Result, SpecialAttemptLimit } from '../types';
-import { Plus, Trash2, Edit, ChevronRight, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Save, X, List, PlusCircle, Upload, Download, FileSpreadsheet, ChevronDown, ChevronUp, BarChart3, UserPlus, Users } from 'lucide-react';
+import { Plus, Trash2, Edit, ChevronRight, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Save, X, List, PlusCircle, Upload, Download, FileSpreadsheet, ChevronDown, ChevronUp, BarChart3, UserPlus, Users, GripVertical, Eye, EyeOff } from 'lucide-react';
 import { formatDuration, formatDate, cn } from '../lib/utils';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import ImportQuizModal from '../components/ImportQuizModal';
 import RichText from '../components/RichText';
 import { ImportedQuiz, downloadFile } from '../lib/importUtils';
@@ -26,7 +27,8 @@ const QuestionEditor = memo(({
   onUpdateOption, 
   onRemove,
   isExpanded,
-  onToggleExpand
+  onToggleExpand,
+  dragHandleProps
 }: { 
   q: Partial<Question>; 
   qIndex: number; 
@@ -35,30 +37,56 @@ const QuestionEditor = memo(({
   onRemove: (index: number) => void;
   isExpanded: boolean;
   onToggleExpand: (index: number) => void;
+  dragHandleProps?: any;
 }) => {
   return (
     <div className={cn(
       "p-6 bg-stone-50 rounded-2xl border transition-all duration-200 relative group",
-      isExpanded ? "border-emerald-200 shadow-md ring-1 ring-emerald-100" : "border-stone-200 hover:border-stone-300"
+      isExpanded ? "border-emerald-200 shadow-md ring-1 ring-emerald-100" : "border-stone-200 hover:border-stone-300",
+      q.hidden && "opacity-60 grayscale-[0.5]"
     )}>
       <div className="flex items-center justify-between gap-4 mb-2">
-        <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0" onClick={() => onToggleExpand(qIndex)}>
-          <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-xs font-bold text-stone-600 shrink-0">
-            {qIndex + 1}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div 
+            {...dragHandleProps}
+            className="p-1 text-stone-400 hover:text-stone-600 cursor-grab active:cursor-grabbing"
+          >
+            <GripVertical className="w-5 h-5" />
           </div>
-          <div className="flex-1 min-w-0">
-            {!isExpanded ? (
-              <RichText 
-                className="text-sm text-stone-600 truncate font-medium max-h-10 overflow-hidden"
-                content={q.text || 'Câu hỏi chưa có nội dung...'}
-              />
-            ) : (
-              <span className="text-sm font-bold text-stone-400 uppercase tracking-wider">Đang chỉnh sửa câu hỏi {qIndex + 1}</span>
-            )}
+          <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0" onClick={() => onToggleExpand(qIndex)}>
+            <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-xs font-bold text-stone-600 shrink-0">
+              {qIndex + 1}
+            </div>
+            <div className="flex-1 min-w-0">
+              {!isExpanded ? (
+                <div className="flex items-center gap-2">
+                  <RichText 
+                    className="text-sm text-stone-600 truncate font-medium max-h-10 overflow-hidden"
+                    content={q.text || 'Câu hỏi chưa có nội dung...'}
+                  />
+                  {q.hidden && <span className="text-[10px] font-bold uppercase bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded">Đã ẩn</span>}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-stone-400 uppercase tracking-wider">Đang chỉnh sửa câu hỏi {qIndex + 1}</span>
+                  {q.hidden && <span className="text-[10px] font-bold uppercase bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded">Đã ẩn</span>}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
         <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => onUpdate(qIndex, 'hidden', !q.hidden)}
+            className={cn(
+              "p-2 rounded-lg transition-all",
+              q.hidden ? "text-amber-600 bg-amber-50 hover:bg-amber-100" : "text-stone-400 hover:text-stone-600 hover:bg-white"
+            )}
+            title={q.hidden ? "Hiện câu hỏi" : "Ẩn câu hỏi"}
+          >
+            {q.hidden ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
           <button
             onClick={() => onToggleExpand(qIndex)}
             className="p-2 text-stone-400 hover:text-stone-600 hover:bg-white rounded-lg transition-all"
@@ -354,7 +382,21 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         id: doc.id,
         ...doc.data()
       })) as Quiz[];
-      setQuizzes(quizList);
+      
+      // Sort by order, then by createdAt
+      const sortedQuizzes = quizList.sort((a, b) => {
+        if (a.order !== undefined && b.order !== undefined) {
+          return a.order - b.order;
+        }
+        if (a.order !== undefined) return -1;
+        if (b.order !== undefined) return 1;
+        
+        const dateA = (a.createdAt as any)?.toDate?.() || new Date(0);
+        const dateB = (b.createdAt as any)?.toDate?.() || new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      setQuizzes(sortedQuizzes);
       setLoading(false);
     }, (error) => {
       console.error("Error listening to quizzes:", error);
@@ -401,6 +443,25 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     setExpandedQuestions({ 0: true }); // Expand first question by default
     setSaving(false);
     setIsModalOpen(true);
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(editingQuestions);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update order field for all items
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      order: index
+    }));
+
+    setEditingQuestions(updatedItems);
+    
+    // Clear expanded states as they might be confusing after reorder
+    setExpandedQuestions({});
   };
 
   const handleCreateNew = () => {
@@ -624,6 +685,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
           text: q.text,
           explanation: q.explanation || '',
           order: i, // Use the current index in validQuestions to preserve order
+          hidden: q.hidden || false,
           updatedAt: serverTimestamp()
         };
 
@@ -1314,18 +1376,36 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                 </div>
 
                 <div className="space-y-4">
-                  {editingQuestions.map((q, qIndex) => (
-                    <QuestionEditor
-                      key={qIndex}
-                      q={q}
-                      qIndex={qIndex}
-                      onUpdate={updateQuestion}
-                      onUpdateOption={updateOption}
-                      onRemove={removeQuestion}
-                      isExpanded={!!expandedQuestions[qIndex]}
-                      onToggleExpand={toggleExpand}
-                    />
-                  ))}
+                  <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="questions">
+                      {(provided) => (
+                        <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
+                          {editingQuestions.map((q, qIndex) => (
+                            <Draggable key={qIndex} draggableId={`q-${qIndex}`} index={qIndex}>
+                              {(provided) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                >
+                                  <QuestionEditor
+                                    q={q}
+                                    qIndex={qIndex}
+                                    onUpdate={updateQuestion}
+                                    onUpdateOption={updateOption}
+                                    onRemove={removeQuestion}
+                                    isExpanded={!!expandedQuestions[qIndex]}
+                                    onToggleExpand={toggleExpand}
+                                    dragHandleProps={provided.dragHandleProps}
+                                  />
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
                 </div>
               </section>
             </div>

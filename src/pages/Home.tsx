@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where, orderBy, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, setDoc, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, updateUserEmail, updateUserPassword, reauthenticateUser } from '../firebase';
 import { Quiz, User, Result } from '../types';
-import { Clock, ChevronRight, BookOpen, Search, Filter, AlertCircle, CheckCircle2, UserCircle, School, Save, Loader2, XCircle, Settings, Key, Mail } from 'lucide-react';
+import { Clock, ChevronRight, BookOpen, Search, Filter, AlertCircle, CheckCircle2, UserCircle, School, Save, Loader2, XCircle, Settings, Key, Mail, GripVertical } from 'lucide-react';
 import { formatDuration, formatDate, cn } from '../lib/utils';
 import { toast } from 'sonner';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 interface HomeProps {
   user: User;
@@ -47,7 +48,21 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
         id: doc.id,
         ...doc.data()
       })) as Quiz[];
-      setQuizzes(quizList);
+      
+      // Sort by order, then by createdAt
+      const sortedQuizzes = quizList.sort((a, b) => {
+        if (a.order !== undefined && b.order !== undefined) {
+          return a.order - b.order;
+        }
+        if (a.order !== undefined) return -1;
+        if (b.order !== undefined) return 1;
+        
+        const dateA = (a.createdAt as any)?.toDate?.() || new Date(0);
+        const dateB = (b.createdAt as any)?.toDate?.() || new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      setQuizzes(sortedQuizzes);
       setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'quizzes');
@@ -100,6 +115,31 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
     const maxAttempts = getEffectiveMaxAttempts(quiz);
     if (maxAttempts === 0) return false;
     return getAttemptCount(quiz.id) >= maxAttempts;
+  };
+
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination || user.role !== 'admin') return;
+
+    const items = Array.from(quizzes);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update state immediately for smooth UI
+    setQuizzes(items);
+
+    // Update Firestore
+    try {
+      const batch = writeBatch(db);
+      items.forEach((quiz, index) => {
+        const quizRef = doc(db, 'quizzes', quiz.id);
+        batch.update(quizRef, { order: index });
+      });
+      await batch.commit();
+      toast.success('Đã cập nhật thứ tự bài thi');
+    } catch (error) {
+      console.error('Error updating quiz order:', error);
+      toast.error('Không thể cập nhật thứ tự bài thi');
+    }
   };
 
   const isRoleAllowed = (quiz: Quiz) => {
@@ -272,93 +312,123 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
           ))}
         </div>
       ) : filteredQuizzes.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredQuizzes.map((quiz) => {
-            const attempts = getAttemptCount(quiz.id);
-            const effectiveMax = getEffectiveMaxAttempts(quiz);
-            const limitReached = isAttemptLimitReached(quiz);
-            const roleAllowed = isRoleAllowed(quiz);
-            const isActive = quiz.isActive;
-            const playable = canTakeQuiz(quiz);
-            
-            return (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="quizzes" direction="horizontal" isDropDisabled={user.role !== 'admin' || searchTerm !== '' || selectedSubject !== 'all' || selectedTopic !== 'all'}>
+            {(provided) => (
               <div 
-                key={quiz.id}
-                className={cn(
-                  "group bg-white rounded-2xl border border-stone-200 p-6 transition-all flex flex-col",
-                  !playable 
-                    ? "opacity-75 cursor-not-allowed grayscale-[0.5]" 
-                    : "hover:shadow-xl hover:shadow-stone-200/50 hover:-translate-y-1 cursor-pointer"
-                )}
-                onClick={() => playable && onTakeQuiz(quiz.id)}
+                {...provided.droppableProps} 
+                ref={provided.innerRef}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
-                      {quiz.subject}
-                    </span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 bg-stone-100 px-2 py-0.5 rounded">
-                      {topics.find(t => t.id === quiz.topic)?.label || quiz.topic}
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    {!isActive && (
-                      <div className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-600 uppercase tracking-wider flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" /> Chưa công khai
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-stone-100 rounded-full text-xs font-medium text-stone-600">
-                      <Clock className="w-3 h-3" />
-                      {formatDuration(quiz.duration)}
-                    </div>
-                    {effectiveMax > 0 ? (
-                      <div className={cn(
-                        "text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider",
-                        limitReached ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600"
-                      )}>
-                        Lượt: {attempts}/{effectiveMax}
-                      </div>
-                    ) : (
-                      <div className="text-[10px] font-bold px-2 py-0.5 rounded bg-stone-50 text-stone-400 uppercase tracking-wider">
-                        Lượt: {attempts}/∞
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <h3 className="text-xl font-medium text-stone-900 mb-2 group-hover:text-emerald-700 transition-colors break-normal">{quiz.title}</h3>
-                <p className="text-stone-500 text-sm line-clamp-2 mb-4 flex-grow break-normal">
-                  {quiz.description || "Không có mô tả cho bài thi này."}
-                </p>
-                
-                <div className="flex items-center justify-between pt-4 border-t border-stone-50">
-                  <span className="text-xs text-stone-400">Cập nhật: {formatDate(quiz.createdAt)}</span>
-                  {!isActive ? (
-                    <div className="flex items-center gap-1 text-amber-600 font-medium text-sm">
-                      <AlertCircle className="w-4 h-4" /> Sắp ra mắt
-                    </div>
-                  ) : !roleAllowed ? (
-                    <div className="flex items-center gap-1 text-stone-400 font-medium text-sm">
-                      <XCircle className="w-4 h-4" /> Không dành cho {user.role === 'student' ? 'Học sinh' : user.role === 'student-vip' ? 'Học sinh-VIP' : 'Khách'}
-                    </div>
-                  ) : limitReached ? (
-                    <div className="flex items-center gap-1 text-red-500 font-medium text-sm">
-                      <AlertCircle className="w-4 h-4" /> Hết lượt
-                    </div>
-                  ) : attempts > 0 ? (
-                    <div className="flex items-center gap-1 text-blue-600 font-medium text-sm">
-                      Làm lại <ChevronRight className="w-4 h-4" />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 text-emerald-600 font-medium text-sm">
-                      Bắt đầu <ChevronRight className="w-4 h-4" />
-                    </div>
-                  )}
-                </div>
+                {filteredQuizzes.map((quiz, index) => {
+                  const attempts = getAttemptCount(quiz.id);
+                  const effectiveMax = getEffectiveMaxAttempts(quiz);
+                  const limitReached = isAttemptLimitReached(quiz);
+                  const roleAllowed = isRoleAllowed(quiz);
+                  const isActive = quiz.isActive;
+                  const playable = canTakeQuiz(quiz);
+                  
+                  return (
+                    <Draggable 
+                      key={quiz.id} 
+                      draggableId={quiz.id} 
+                      index={index}
+                      isDragDisabled={user.role !== 'admin' || searchTerm !== '' || selectedSubject !== 'all' || selectedTopic !== 'all'}
+                    >
+                      {(provided) => (
+                        <div 
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={cn(
+                            "group bg-white rounded-2xl border border-stone-200 p-6 transition-all flex flex-col relative",
+                            !playable 
+                              ? "opacity-75 cursor-not-allowed grayscale-[0.5]" 
+                              : "hover:shadow-xl hover:shadow-stone-200/50 hover:-translate-y-1 cursor-pointer"
+                          )}
+                          onClick={() => playable && onTakeQuiz(quiz.id)}
+                        >
+                          {user.role === 'admin' && searchTerm === '' && selectedSubject === 'all' && selectedTopic === 'all' && (
+                            <div 
+                              {...provided.dragHandleProps}
+                              className="absolute top-2 right-2 p-1 text-stone-300 hover:text-stone-500 transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+                          )}
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                                {quiz.subject}
+                              </span>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 bg-stone-100 px-2 py-0.5 rounded">
+                                {topics.find(t => t.id === quiz.topic)?.label || quiz.topic}
+                              </span>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                              {!isActive && (
+                                <div className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-600 uppercase tracking-wider flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" /> Chưa công khai
+                                </div>
+                              )}
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-stone-100 rounded-full text-xs font-medium text-stone-600">
+                                <Clock className="w-3 h-3" />
+                                {formatDuration(quiz.duration)}
+                              </div>
+                              {effectiveMax > 0 ? (
+                                <div className={cn(
+                                  "text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider",
+                                  limitReached ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600"
+                                )}>
+                                  Lượt: {attempts}/{effectiveMax}
+                                </div>
+                              ) : (
+                                <div className="text-[10px] font-bold px-2 py-0.5 rounded bg-stone-50 text-stone-400 uppercase tracking-wider">
+                                  Lượt: {attempts}/∞
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <h3 className="text-xl font-medium text-stone-900 mb-2 group-hover:text-emerald-700 transition-colors break-normal">{quiz.title}</h3>
+                          <p className="text-stone-500 text-sm line-clamp-2 mb-4 flex-grow break-normal">
+                            {quiz.description || "Không có mô tả cho bài thi này."}
+                          </p>
+                          
+                          <div className="flex items-center justify-between pt-4 border-t border-stone-50">
+                            <span className="text-xs text-stone-400">Cập nhật: {formatDate(quiz.createdAt)}</span>
+                            {!isActive ? (
+                              <div className="flex items-center gap-1 text-amber-600 font-medium text-sm">
+                                <AlertCircle className="w-4 h-4" /> Sắp ra mắt
+                              </div>
+                            ) : !roleAllowed ? (
+                              <div className="flex items-center gap-1 text-stone-400 font-medium text-sm">
+                                <XCircle className="w-4 h-4" /> Không dành cho {user.role === 'student' ? 'Học sinh' : user.role === 'student-vip' ? 'Học sinh-VIP' : 'Khách'}
+                              </div>
+                            ) : limitReached ? (
+                              <div className="flex items-center gap-1 text-red-500 font-medium text-sm">
+                                <AlertCircle className="w-4 h-4" /> Hết lượt
+                              </div>
+                            ) : attempts > 0 ? (
+                              <div className="flex items-center gap-1 text-blue-600 font-medium text-sm">
+                                Làm lại <ChevronRight className="w-4 h-4" />
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 text-emerald-600 font-medium text-sm">
+                                Bắt đầu <ChevronRight className="w-4 h-4" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
               </div>
-            );
-          })}
-        </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       ) : (
         <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-stone-200">
           <div className="w-16 h-16 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-4">

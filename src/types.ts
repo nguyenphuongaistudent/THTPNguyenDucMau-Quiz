@@ -38,6 +38,7 @@ export interface Quiz {
   isActive: boolean;
   allowedRoles?: UserRole[];
   reviewRoles?: UserRole[];
+  order?: number;
 }
 
 export type QuestionType = 'multiple_choice' | 'true_false';
@@ -51,6 +52,7 @@ export interface Question {
   correctAnswers?: boolean[]; // For true_false: array of 4 booleans [true, false, true, true] for a, b, c, d.
   explanation?: string;
   order: number;
+  hidden?: boolean;
 }
 
 export interface Result {

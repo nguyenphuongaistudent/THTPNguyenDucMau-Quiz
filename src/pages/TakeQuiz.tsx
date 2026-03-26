@@ -77,6 +77,11 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
             ...doc.data()
           })) as Question[];
 
+          // Filter out hidden questions for non-admins
+          if (user.role !== 'admin') {
+            questionList = questionList.filter(q => !q.hidden);
+          }
+
           // Helper to shuffle array
           const shuffleArray = <T,>(array: T[]): T[] => {
             const newArr = [...array];
