@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { UserCircle, School, BookOpen, Save, Loader2, XCircle, X, Mail, Lock, Key } from 'lucide-react';
-import { setDoc, doc } from 'firebase/firestore';
-import { db, updateUserEmail, updateUserPassword } from '../firebase';
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { db, updateUserEmail, updateUserPassword, reauthenticateUser } from '../firebase';
 import { User } from '../types';
 import { cn } from '../lib/utils';
+import { toast } from 'sonner';
 
 interface ProfileModalProps {
   user: User;
@@ -16,7 +17,8 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
     displayName: user.displayName || '', 
     school: user.school || '', 
     class: user.class || '',
-    email: user.email || ''
+    email: user.email || '',
+    currentPassword: ''
   });
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,31 +26,48 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!profileForm.currentPassword) {
+      toast.error('Vui lòng nhập mật khẩu hiện tại để xác nhận thay đổi.');
+      return;
+    }
+
     setSaving(true);
     try {
-      // Update Firestore profile
-      await setDoc(doc(db, 'users', user.uid), {
-        displayName: profileForm.displayName,
-        school: profileForm.school,
-        class: profileForm.class
-      }, { merge: true });
+      // 1. Re-authenticate first
+      await reauthenticateUser(profileForm.currentPassword);
 
-      // Update Email if changed
+      // 2. Update Auth email if changed
       if (profileForm.email !== user.email) {
         await updateUserEmail(profileForm.email);
       }
-
-      // Update Password if provided
+      
+      // 3. Update Auth password if provided
       if (newPassword) {
         if (newPassword !== confirmPassword) {
           throw new Error('Mật khẩu xác nhận không khớp.');
         }
         if (newPassword.length < 6) {
-          throw new Error('Mật khẩu phải có ít nhất 6 ký tự.');
+          throw new Error('Mật khẩu mới phải có ít nhất 6 ký tự.');
         }
         await updateUserPassword(newPassword);
       }
 
+      // 4. Update Firestore fields
+      const updateData: any = {
+        email: profileForm.email,
+        updatedAt: serverTimestamp()
+      };
+
+      if (user.role === 'admin') {
+        updateData.displayName = profileForm.displayName;
+        updateData.school = profileForm.school;
+        updateData.class = profileForm.class;
+      }
+
+      await setDoc(doc(db, 'users', user.uid), updateData, { merge: true });
+
+      toast.success('Cập nhật thông tin thành công!');
       if (onUpdate) onUpdate();
       onClose();
     } catch (error: any) {
@@ -59,7 +78,7 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
       } else if (error.message) {
         message = error.message;
       }
-      alert(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -94,23 +113,43 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
               placeholder="Nhập họ và tên"
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
-              <School className="w-4 h-4" /> Trường học
-            </label>
-            <input
-              type="text"
-              value={profileForm.school}
-              onChange={(e) => setProfileForm({ ...profileForm, school: e.target.value })}
-              readOnly={user.role !== 'admin'}
-              className={cn(
-                "w-full px-4 py-3 border rounded-xl transition-all",
-                user.role === 'admin' 
-                  ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
-                  : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
-              )}
-              placeholder="Nhập tên trường"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                <School className="w-4 h-4" /> Trường học
+              </label>
+              <input
+                type="text"
+                value={profileForm.school}
+                onChange={(e) => setProfileForm({ ...profileForm, school: e.target.value })}
+                readOnly={user.role !== 'admin'}
+                className={cn(
+                  "w-full px-4 py-3 border rounded-xl transition-all",
+                  user.role === 'admin' 
+                    ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                    : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+                )}
+                placeholder="Nhập tên trường"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
+                <BookOpen className="w-4 h-4" /> Lớp học
+              </label>
+              <input
+                type="text"
+                value={profileForm.class}
+                onChange={(e) => setProfileForm({ ...profileForm, class: e.target.value })}
+                readOnly={user.role !== 'admin'}
+                className={cn(
+                  "w-full px-4 py-3 border rounded-xl transition-all",
+                  user.role === 'admin' 
+                    ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                    : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
+                )}
+                placeholder="Nhập tên lớp"
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
@@ -120,13 +159,7 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
               type="email"
               value={profileForm.email}
               onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-              readOnly={user.role !== 'admin'}
-              className={cn(
-                "w-full px-4 py-3 border rounded-xl transition-all",
-                user.role === 'admin' 
-                  ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
-                  : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
-              )}
+              className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
               placeholder="example@gmail.com"
             />
           </div>
@@ -142,36 +175,42 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  readOnly={user.role !== 'admin'}
-                  className={cn(
-                    "w-full px-4 py-3 border rounded-xl transition-all",
-                    user.role === 'admin' 
-                      ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
-                      : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
-                  )}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                   placeholder="••••••••"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-stone-700 flex items-center gap-2">
-                  <Key className="w-4 h-4" /> Xác nhận mật khẩu
+                  <Key className="w-4 h-4" /> Xác nhận mật khẩu mới
                 </label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  readOnly={user.role !== 'admin'}
-                  className={cn(
-                    "w-full px-4 py-3 border rounded-xl transition-all",
-                    user.role === 'admin' 
-                      ? "bg-stone-50 border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
-                      : "bg-stone-100 border-stone-200 text-stone-500 cursor-not-allowed"
-                  )}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                   placeholder="••••••••"
                 />
               </div>
             </div>
           </div>
+
+          <div className="h-px bg-stone-100 my-4" />
+
+          <div className="space-y-2 p-4 bg-amber-50 rounded-2xl border border-amber-100">
+            <label className="text-sm font-bold text-amber-900 flex items-center gap-2">
+              <Key className="w-4 h-4" /> Xác nhận mật khẩu hiện tại
+            </label>
+            <p className="text-[10px] text-amber-700 mb-2">Vui lòng nhập mật khẩu đang sử dụng để lưu các thay đổi.</p>
+            <input
+              type="password"
+              required
+              value={profileForm.currentPassword}
+              onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
+              className="w-full px-4 py-3 bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+              placeholder="Nhập mật khẩu hiện tại"
+            />
+          </div>
+
           <div className="pt-4 flex gap-3">
             <button
               type="button"
@@ -180,16 +219,14 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
             >
               Hủy bỏ
             </button>
-            {user.role === 'admin' && (
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-grow flex items-center justify-center gap-2 bg-stone-900 text-white py-3 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium disabled:opacity-50"
-              >
-                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                Cập nhật
-              </button>
-            )}
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-grow flex items-center justify-center gap-2 bg-stone-900 text-white py-3 px-6 rounded-xl hover:bg-stone-800 transition-all font-medium disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+              Cập nhật
+            </button>
           </div>
         </form>
       </div>
