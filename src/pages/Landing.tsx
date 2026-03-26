@@ -51,7 +51,7 @@ export default function Landing({ onLogin, onRegister, registrationEnabled }: La
               <Shield className="w-3 h-3" /> Nền tảng bảo mật & tin cậy
             </div>
             <h1 className="text-3xl md:text-5xl font-sans font-bold text-stone-900 mb-8 tracking-tight leading-tight">
-              Nâng tầm kiến thức với <span className="text-emerald-600">Nguyễn Đức Mậu-QuizPro</span>
+              Nâng tầm kiến thức với <br /> <span className="text-emerald-600">Hệ thống Nguyễn Đức Mậu - QuizPro</span>
             </h1>
             <p className="text-xl text-stone-500 mb-12 leading-relaxed max-w-2xl mx-auto">
               Hệ thống thi trắc nghiệm trực tuyến hiện đại dành cho giáo viên và học sinh. Quản lý đề thi dễ dàng, làm bài trực quan và kết quả tức thì.
