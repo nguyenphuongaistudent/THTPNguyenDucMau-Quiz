@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, updateProfile, updateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, updateProfile, verifyBeforeUpdateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, onSnapshot, addDoc, getDocs, deleteDoc, serverTimestamp, Timestamp, updateDoc, deleteField } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import { UserRole } from './types';
@@ -341,8 +341,9 @@ export const checkEmailUnique = async (email: string) => {
 
 export const updateUserEmail = async (newEmail: string) => {
   if (auth.currentUser) {
-    await updateEmail(auth.currentUser, newEmail);
-    await setDoc(doc(db, 'users', auth.currentUser.uid), { email: newEmail }, { merge: true });
+    await verifyBeforeUpdateEmail(auth.currentUser, newEmail);
+    // Note: We don't update Firestore here because the email change is pending verification.
+    // The user will need to click the link in their email to complete the change.
   }
 };
 

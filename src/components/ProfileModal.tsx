@@ -38,8 +38,10 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
       await reauthenticateUser(profileForm.currentPassword);
 
       // 2. Update Auth email if changed
+      let emailChanged = false;
       if (profileForm.email !== user.email) {
         await updateUserEmail(profileForm.email);
+        emailChanged = true;
       }
       
       // 3. Update Auth password if provided
@@ -55,19 +57,27 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
 
       // 4. Update Firestore fields
       const updateData: any = {
-        email: profileForm.email,
         updatedAt: serverTimestamp()
       };
+
+      if (!emailChanged) {
+        updateData.email = profileForm.email;
+      }
 
       if (user.role === 'admin') {
         updateData.displayName = profileForm.displayName;
         updateData.school = profileForm.school;
         updateData.class = profileForm.class;
+        if (emailChanged) updateData.email = profileForm.email;
       }
 
       await setDoc(doc(db, 'users', user.uid), updateData, { merge: true });
 
-      toast.success('Cập nhật thông tin thành công!');
+      if (emailChanged) {
+        toast.success('Một email xác nhận đã được gửi đến địa chỉ mới. Vui lòng kiểm tra hộp thư để hoàn tất thay đổi.');
+      } else {
+        toast.success('Cập nhật thông tin thành công!');
+      }
       if (onUpdate) onUpdate();
       onClose();
     } catch (error: any) {

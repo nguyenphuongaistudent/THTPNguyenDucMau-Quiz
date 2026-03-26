@@ -147,24 +147,25 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                       <div className="grid grid-cols-1 gap-3">
                         {q.type === 'multiple_choice' ? (
                           q.options.map((opt, oIdx) => {
-                            const isUserChoice = userAnswer === oIdx;
                             const isCorrectChoice = q.correctOptionIndex === oIdx;
+                            const isUserChoice = userAnswer === oIdx;
+                            const showAsCorrect = isCorrectChoice && (isAdminOrTeacher || showAnswers[q.id]);
                             
                             return (
                               <div 
                                 key={oIdx}
                                 className={cn(
                                   "p-4 rounded-2xl border-2 flex items-center gap-4 transition-all",
-                                  isCorrectChoice 
+                                  showAsCorrect 
                                     ? "border-emerald-500 bg-emerald-50/50" 
                                     : isUserChoice 
-                                      ? "border-red-200 bg-red-50/50" 
+                                      ? (isCorrect ? "border-emerald-500 bg-emerald-50/50" : "border-red-200 bg-red-50/50")
                                       : "border-stone-100 bg-white"
                                 )}
                               >
                                 <div className={cn(
                                   "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-                                  isCorrectChoice ? "bg-emerald-500 text-white" : 
+                                  showAsCorrect || (isUserChoice && isCorrect) ? "bg-emerald-500 text-white" : 
                                   isUserChoice ? "bg-red-500 text-white" : "bg-stone-100 text-stone-500"
                                 )}>
                                   {String.fromCharCode(65 + oIdx)}
@@ -207,15 +208,11 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                                     <div className={cn(
                                       "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
                                       userVal === true 
-                                        ? ((isAdminOrTeacher || showAnswers[q.id]) 
-                                            ? (correctVal === true ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white")
-                                            : (isSubCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white"))
+                                        ? (isSubCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white")
                                         : ((isAdminOrTeacher || showAnswers[q.id]) && correctVal === true ? "border-emerald-200" : "border-stone-200")
                                     )}>
                                       {userVal === true && (
-                                        (isAdminOrTeacher || showAnswers[q.id]) 
-                                          ? (correctVal === true ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)
-                                          : (isSubCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)
+                                        isSubCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />
                                       )}
                                     </div>
                                   </div>
@@ -223,15 +220,11 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                                     <div className={cn(
                                       "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
                                       userVal === false 
-                                        ? ((isAdminOrTeacher || showAnswers[q.id]) 
-                                            ? (correctVal === false ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white")
-                                            : (isSubCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white"))
+                                        ? (isSubCorrect ? "bg-emerald-500 border-emerald-500 text-white" : "bg-red-500 border-red-500 text-white")
                                         : ((isAdminOrTeacher || showAnswers[q.id]) && correctVal === false ? "border-emerald-200" : "border-stone-200")
                                     )}>
                                       {userVal === false && (
-                                        (isAdminOrTeacher || showAnswers[q.id]) 
-                                          ? (correctVal === false ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)
-                                          : (isSubCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)
+                                        isSubCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />
                                       )}
                                     </div>
                                   </div>

@@ -126,8 +126,10 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
       await reauthenticateUser(profileForm.currentPassword);
 
       // 2. Update Auth email if changed
+      let emailChanged = false;
       if (profileForm.email !== user.email) {
         await updateUserEmail(profileForm.email);
+        emailChanged = true;
       }
       
       // 3. Update Auth password if provided
@@ -140,21 +142,34 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
 
       // 4. Update Firestore fields (Admins can update all, members only email/metadata)
       const updateData: any = {
-        email: profileForm.email,
         updatedAt: serverTimestamp()
       };
+
+      // If email changed, we don't update Firestore yet because it's pending verification in Auth
+      // However, for consistency in the app, we might want to update it, but Auth is the source of truth.
+      // Let's update Firestore ONLY if it's NOT an email change, or if we want to track the "intended" email.
+      // The user's request implies they want the change to work.
+      if (!emailChanged) {
+        updateData.email = profileForm.email;
+      }
 
       if (user.role === 'admin') {
         updateData.displayName = profileForm.displayName;
         updateData.school = profileForm.school;
         updateData.class = profileForm.class;
+        if (emailChanged) updateData.email = profileForm.email; // Admins might bypass or we just set it
       }
 
       await setDoc(doc(db, 'users', user.uid), updateData, { merge: true });
 
       setIsProfileOpen(false);
       setProfileForm(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
-      toast.success('Cập nhật thông tin thành công.');
+      
+      if (emailChanged) {
+        toast.success('Một email xác nhận đã được gửi đến địa chỉ mới. Vui lòng kiểm tra hộp thư để hoàn tất thay đổi.');
+      } else {
+        toast.success('Cập nhật thông tin thành công.');
+      }
     } catch (error: any) {
       console.error('Error updating profile:', error);
       if (error.code === 'auth/wrong-password') {
