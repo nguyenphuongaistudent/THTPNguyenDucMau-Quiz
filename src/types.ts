@@ -18,6 +18,12 @@ export interface User {
 
 export type QuizTopic = 'regular' | 'periodic' | 'graduation';
 
+export interface SpecialAttemptLimit {
+  type: 'class' | 'student';
+  targetId: string; // class name or student UID
+  maxAttempts: number;
+}
+
 export interface Quiz {
   id: string;
   title: string;
@@ -26,6 +32,7 @@ export interface Quiz {
   topic: QuizTopic;
   duration: number; // minutes
   maxAttempts?: number; // 0 or undefined means unlimited
+  specialAttemptLimits?: SpecialAttemptLimit[];
   createdBy: string;
   createdAt: Timestamp;
   isActive: boolean;
@@ -60,5 +67,9 @@ export interface Result {
   totalQuestions: number;
   correctAnswers: number;
   completedAt: Timestamp;
-  answers: { val: number | boolean[] }[];
+  answers: { 
+    questionId: string;
+    val: number | boolean[];
+    isCorrect: boolean;
+  }[];
 }

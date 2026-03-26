@@ -1,5 +1,5 @@
 import * as mammoth from 'mammoth';
-import { Question, QuestionType, QuizTopic } from '../types';
+import { Question, QuestionType, QuizTopic, SpecialAttemptLimit } from '../types';
 
 export interface ImportedQuiz {
   title: string;
@@ -7,6 +7,8 @@ export interface ImportedQuiz {
   subject: string;
   topic: QuizTopic;
   duration: number;
+  maxAttempts?: number;
+  specialAttemptLimits?: SpecialAttemptLimit[];
   questions: Partial<Question>[];
 }
 

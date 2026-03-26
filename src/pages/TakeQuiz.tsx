@@ -44,8 +44,26 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         if (foundQuiz) {
           const quizData = { id: foundQuiz.id, ...foundQuiz.data() } as Quiz;
           
-          if (user.role !== 'admin' && quizData.maxAttempts && quizData.maxAttempts > 0 && attemptCount >= quizData.maxAttempts) {
-            setAttemptError(`Bạn đã hết lượt làm bài thi này (Tối đa: ${quizData.maxAttempts} lượt).`);
+          // Determine effective max attempts
+          let effectiveMaxAttempts = quizData.maxAttempts || 0;
+          
+          // Check special attempt limits
+          if (quizData.specialAttemptLimits && quizData.specialAttemptLimits.length > 0) {
+            // Check student-specific limits first
+            const studentLimit = quizData.specialAttemptLimits.find(l => l.type === 'student' && l.targetId === user.uid);
+            if (studentLimit) {
+              effectiveMaxAttempts = studentLimit.maxAttempts;
+            } else {
+              // Check class-specific limits
+              const classLimit = quizData.specialAttemptLimits.find(l => l.type === 'class' && l.targetId === user.class);
+              if (classLimit) {
+                effectiveMaxAttempts = classLimit.maxAttempts;
+              }
+            }
+          }
+
+          if (user.role !== 'admin' && effectiveMaxAttempts > 0 && attemptCount >= effectiveMaxAttempts) {
+            setAttemptError(`Bạn đã hết lượt làm bài thi này (Tối đa: ${effectiveMaxAttempts} lượt).`);
             setLoading(false);
             return;
           }
@@ -140,13 +158,16 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
     try {
       let totalScore = 0;
       let correctCount = 0;
+      const sanitizedAnswers: any[] = [];
 
       questions.forEach((q, index) => {
         const studentAnswer = answers[index];
+        let isCorrect = false;
         if (q.type === 'multiple_choice') {
           if (studentAnswer === q.correctOptionIndex) {
             correctCount++;
             totalScore += (10 / questions.length);
+            isCorrect = true;
           }
         } else if (q.type === 'true_false' && Array.isArray(studentAnswer)) {
           let subCorrectCount = 0;
@@ -163,16 +184,23 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
           else if (subCorrectCount === 4) {
             totalScore += questionWeight * 1.0;
             correctCount++;
+            isCorrect = true;
           }
         }
-      });
 
-      // Ensure answers are Firestore-compatible (no undefined)
-      const sanitizedAnswers = answers.map(a => {
-        if (Array.isArray(a)) {
-          return { val: a.map(v => v === undefined ? null : v) };
+        // Prepare sanitized answer
+        let sanitizedVal: any;
+        if (Array.isArray(studentAnswer)) {
+          sanitizedVal = studentAnswer.map(v => v === undefined ? null : v);
+        } else {
+          sanitizedVal = studentAnswer === undefined ? -1 : studentAnswer;
         }
-        return { val: a === undefined ? -1 : a };
+
+        sanitizedAnswers.push({
+          questionId: q.id,
+          val: sanitizedVal,
+          isCorrect
+        });
       });
 
       await addDoc(collection(db, 'results'), {

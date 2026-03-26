@@ -40,6 +40,18 @@
           "type": "array",
           "items": { "type": "string", "enum": ["student", "student-vip", "guest"] },
           "description": "Các vai trò được phép xem lại bài thi"
+        },
+        "specialAttemptLimits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["class", "student"] },
+              "targetId": { "type": "string" },
+              "maxAttempts": { "type": "integer" }
+            }
+          },
+          "description": "Giới hạn lượt thi đặc biệt cho lớp hoặc học sinh cụ thể"
         }
       },
       "required": ["title", "duration", "createdBy"]
@@ -80,8 +92,15 @@
         "completedAt": { "type": "string", "format": "date-time", "description": "Thời gian nộp bài" },
         "answers": {
           "type": "array",
-          "items": { "type": "any" },
-          "description": "Danh sách các đáp án học sinh đã chọn (số cho MCQ, mảng boolean cho T/F)"
+          "items": {
+            "type": "object",
+            "properties": {
+              "questionId": { "type": "string" },
+              "val": { "type": "any" },
+              "isCorrect": { "type": "boolean" }
+            }
+          },
+          "description": "Danh sách các đáp án chi tiết học sinh đã chọn"
         }
       },
       "required": ["quizId", "studentUid", "score", "completedAt"]

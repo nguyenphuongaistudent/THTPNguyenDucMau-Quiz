@@ -23,6 +23,7 @@ service cloud.firestore {
     //   - description: string (optional, max 1000) - Mô tả
     //   - duration: number (required, positive) - Thời gian làm bài (phút)
     //   - maxAttempts: number (optional, >= 0) - Số lượt thi tối đa
+    //   - specialAttemptLimits: list (optional) - Giới hạn lượt thi đặc biệt cho lớp/học sinh
     //   - createdBy: string (required) - UID admin
     //   - createdAt: timestamp (required) - Ngày tạo
     //   - isActive: bool (required) - Trạng thái
@@ -102,7 +103,7 @@ service cloud.firestore {
     }
 
     function isValidQuiz(data) {
-      return hasOnlyAllowedFields(['id', 'title', 'description', 'subject', 'topic', 'duration', 'maxAttempts', 'createdBy', 'createdAt', 'isActive', 'updatedAt', 'allowedRoles', 'reviewRoles']) &&
+      return hasOnlyAllowedFields(['id', 'title', 'description', 'subject', 'topic', 'duration', 'maxAttempts', 'createdBy', 'createdAt', 'isActive', 'updatedAt', 'allowedRoles', 'reviewRoles', 'specialAttemptLimits']) &&
              (!('id' in data) || data.id is string) &&
              (!('title' in data) || (data.title is string && data.title.size() > 0 && data.title.size() <= 500)) &&
              (!('description' in data) || (data.description is string && data.description.size() <= 10000)) &&
@@ -110,6 +111,7 @@ service cloud.firestore {
              (!('topic' in data) || (data.topic in ['regular', 'periodic', 'graduation'])) &&
              (!('duration' in data) || (data.duration is number && data.duration > 0 && data.duration <= 1440)) &&
              (!('maxAttempts' in data) || (data.maxAttempts is number && data.maxAttempts >= 0 && data.maxAttempts <= 1000)) &&
+             (!('specialAttemptLimits' in data) || (data.specialAttemptLimits is list && data.specialAttemptLimits.size() <= 100)) &&
              (!('createdBy' in data) || (data.createdBy is string)) &&
              (!('isActive' in data) || (data.isActive is bool)) &&
              (!('allowedRoles' in data) || (data.allowedRoles is list && data.allowedRoles.size() >= 1 && data.allowedRoles.size() <= 10)) &&

@@ -5,8 +5,8 @@ import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } fro
 import { saveAs } from 'file-saver';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, writeBatch, deleteField, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { Quiz, Question, User, QuestionType } from '../types';
-import { Plus, Trash2, Edit, ChevronRight, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Save, X, List, PlusCircle, Upload, Download, FileSpreadsheet, ChevronDown, ChevronUp } from 'lucide-react';
+import { Quiz, Question, User, QuestionType, Result, SpecialAttemptLimit } from '../types';
+import { Plus, Trash2, Edit, ChevronRight, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Save, X, List, PlusCircle, Upload, Download, FileSpreadsheet, ChevronDown, ChevronUp, BarChart3, UserPlus, Users } from 'lucide-react';
 import { formatDuration, formatDate, cn } from '../lib/utils';
 import ImportQuizModal from '../components/ImportQuizModal';
 import RichText from '../components/RichText';
@@ -228,6 +228,102 @@ const QuestionEditor = memo(({
   );
 });
 
+const QuizStatsModal = ({ quiz, onClose }: { quiz: Quiz; onClose: () => void }) => {
+  const [stats, setStats] = useState<{ questionId: string; text: string; wrongCount: number; totalCount: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const resultsQ = query(collection(db, 'results'), where('quizId', '==', quiz.id));
+        const resultsSnapshot = await getDocs(resultsQ);
+        const results = resultsSnapshot.docs.map(doc => doc.data() as Result);
+
+        const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', quiz.id, 'questions'), orderBy('order')));
+        const questions = questionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+
+        const questionStats: Record<string, { wrong: number; total: number }> = {};
+        
+        results.forEach(result => {
+          if (result.answers && Array.isArray(result.answers)) {
+            result.answers.forEach(ans => {
+              if (ans.questionId) {
+                if (!questionStats[ans.questionId]) {
+                  questionStats[ans.questionId] = { wrong: 0, total: 0 };
+                }
+                questionStats[ans.questionId].total++;
+                if (!ans.isCorrect) {
+                  questionStats[ans.questionId].wrong++;
+                }
+              }
+            });
+          }
+        });
+
+        const sortedStats = questions.map(q => ({
+          questionId: q.id,
+          text: q.text,
+          wrongCount: questionStats[q.id]?.wrong || 0,
+          totalCount: questionStats[q.id]?.total || 0
+        })).sort((a, b) => b.wrongCount - a.wrongCount);
+
+        setStats(sortedStats);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [quiz.id]);
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-4xl max-h-[80vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+        <div className="px-8 py-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+          <h2 className="text-2xl font-serif italic font-medium">Thống kê câu hỏi hay sai: {quiz.title}</h2>
+          <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="flex-grow overflow-y-auto p-8">
+          {loading ? (
+            <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-stone-300" /></div>
+          ) : stats.length > 0 ? (
+            <div className="space-y-4">
+              {stats.map((s, i) => (
+                <div key={s.questionId} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-xs font-bold text-stone-600 shrink-0">
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <RichText className="text-sm text-stone-800 mb-2" content={s.text} />
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
+                        <XCircle className="w-3 h-3" /> Sai: {s.wrongCount}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded">
+                        <CheckCircle2 className="w-3 h-3" /> Tổng lượt: {s.totalCount}
+                      </div>
+                      <div className="text-xs font-bold text-stone-400">
+                        Tỷ lệ sai: {s.totalCount > 0 ? Math.round((s.wrongCount / s.totalCount) * 100) : 0}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center py-20 text-stone-400 italic">Chưa có dữ liệu thống kê cho bài thi này.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function AdminDashboard({ user }: AdminDashboardProps) {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,6 +336,9 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   const [filterSubject, setFilterSubject] = useState<string>('all');
   const [filterTopic, setFilterTopic] = useState<string>('all');
   const [expandedQuestions, setExpandedQuestions] = useState<Record<number, boolean>>({ 0: true });
+  const [statsQuiz, setStatsQuiz] = useState<Quiz | null>(null);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [availableClasses, setAvailableClasses] = useState<string[]>([]);
 
   const subjects = ['Toán', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh', 'Lịch sử', 'Địa lý', 'GDCD', 'Ngữ văn', 'Tin học'];
   const topics = [
@@ -260,6 +359,24 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     }, (error) => {
       console.error("Error listening to quizzes:", error);
       setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, 'users'), orderBy('displayName', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const userList = snapshot.docs.map(doc => ({
+        uid: doc.id,
+        ...doc.data()
+      })) as User[];
+      setAllUsers(userList);
+      
+      const classes = Array.from(new Set(userList.map(u => u.class).filter(Boolean))) as string[];
+      setAvailableClasses(classes.sort());
+    }, (error) => {
+      console.error("Error listening to users:", error);
     });
 
     return () => unsubscribe();
@@ -316,6 +433,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       subject: imported.subject,
       topic: imported.topic,
       duration: imported.duration,
+      maxAttempts: imported.maxAttempts ?? 1,
+      specialAttemptLimits: imported.specialAttemptLimits || [],
       isActive: true
     });
     setEditingQuestions(imported.questions.map((q, index) => {
@@ -357,6 +476,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         subject: quiz.subject,
         topic: quiz.topic,
         duration: quiz.duration,
+        maxAttempts: quiz.maxAttempts,
+        specialAttemptLimits: quiz.specialAttemptLimits || [],
         questions
       };
 
@@ -464,6 +585,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         isActive: editingQuiz.isActive ?? true,
         allowedRoles: editingQuiz.allowedRoles || ['student', 'student-vip', 'guest'],
         reviewRoles: editingQuiz.reviewRoles || ['student', 'student-vip', 'guest'],
+        specialAttemptLimits: editingQuiz.specialAttemptLimits || [],
         updatedAt: serverTimestamp()
       };
 
@@ -875,6 +997,13 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button 
+                        onClick={() => setStatsQuiz(quiz)}
+                        title="Thống kê câu hỏi hay sai"
+                        className="p-2 text-stone-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                      >
+                        <BarChart3 className="w-4 h-4" />
+                      </button>
+                      <button 
                         onClick={() => handleExportResults(quiz)}
                         title="Xuất kết quả thi (Excel)"
                         className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
@@ -996,6 +1125,105 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                       className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                       placeholder="VD: 1"
                     />
+                  </div>
+
+                  {/* Special Attempt Limits */}
+                  <div className="md:col-span-2 p-6 bg-stone-50 rounded-2xl border border-stone-200 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                        <Users className="w-4 h-4" /> Cấu hình lượt thi đặc biệt (Lớp/Học sinh)
+                      </h4>
+                      <button
+                        onClick={() => {
+                          const currentLimits = editingQuiz?.specialAttemptLimits || [];
+                          setEditingQuiz({
+                            ...editingQuiz,
+                            specialAttemptLimits: [...currentLimits, { type: 'class', targetId: '', maxAttempts: 1 }]
+                          });
+                        }}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" /> Thêm cấu hình
+                      </button>
+                    </div>
+                    
+                    {editingQuiz?.specialAttemptLimits && editingQuiz.specialAttemptLimits.length > 0 ? (
+                      <div className="space-y-3">
+                        {editingQuiz.specialAttemptLimits.map((limit, idx) => (
+                          <div key={idx} className="flex flex-col sm:flex-row items-center gap-3 bg-white p-3 rounded-xl border border-stone-100">
+                            <select
+                              value={limit.type}
+                              onChange={(e) => {
+                                const newLimits = [...editingQuiz.specialAttemptLimits!];
+                                newLimits[idx] = { ...limit, type: e.target.value as any };
+                                setEditingQuiz({ ...editingQuiz, specialAttemptLimits: newLimits });
+                              }}
+                              className="w-full sm:w-32 px-3 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs"
+                            >
+                              <option value="class">Lớp</option>
+                              <option value="student">Học sinh</option>
+                            </select>
+                            {limit.type === 'class' ? (
+                              <select
+                                value={limit.targetId}
+                                onChange={(e) => {
+                                  const newLimits = [...editingQuiz.specialAttemptLimits!];
+                                  newLimits[idx] = { ...limit, targetId: e.target.value };
+                                  setEditingQuiz({ ...editingQuiz, specialAttemptLimits: newLimits });
+                                }}
+                                className="flex-1 px-3 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs"
+                              >
+                                <option value="">Chọn lớp...</option>
+                                {availableClasses.map(c => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <select
+                                value={limit.targetId}
+                                onChange={(e) => {
+                                  const newLimits = [...editingQuiz.specialAttemptLimits!];
+                                  newLimits[idx] = { ...limit, targetId: e.target.value };
+                                  setEditingQuiz({ ...editingQuiz, specialAttemptLimits: newLimits });
+                                }}
+                                className="flex-1 px-3 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs"
+                              >
+                                <option value="">Chọn học sinh...</option>
+                                {allUsers.filter(u => u.role !== 'admin').map(u => (
+                                  <option key={u.uid} value={u.uid}>
+                                    {u.displayName || u.email.split('@')[0]} ({u.class || 'N/A'})
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                            <div className="flex items-center gap-2 shrink-0">
+                              <label className="text-[10px] font-bold text-stone-400 uppercase">Lượt:</label>
+                              <input
+                                type="number"
+                                value={limit.maxAttempts}
+                                onChange={(e) => {
+                                  const newLimits = [...editingQuiz.specialAttemptLimits!];
+                                  newLimits[idx] = { ...limit, maxAttempts: Number(e.target.value) };
+                                  setEditingQuiz({ ...editingQuiz, specialAttemptLimits: newLimits });
+                                }}
+                                className="w-16 px-3 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs"
+                              />
+                            </div>
+                            <button
+                              onClick={() => {
+                                const newLimits = editingQuiz.specialAttemptLimits!.filter((_, i) => i !== idx);
+                                setEditingQuiz({ ...editingQuiz, specialAttemptLimits: newLimits });
+                              }}
+                              className="p-1.5 text-stone-400 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-stone-400 italic">Chưa có cấu hình đặc biệt nào.</p>
+                    )}
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <label className="text-sm font-medium text-stone-700">Mô tả bài thi</label>
@@ -1121,6 +1349,12 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
             </div>
           </div>
         </div>
+      )}
+      {statsQuiz && (
+        <QuizStatsModal 
+          quiz={statsQuiz} 
+          onClose={() => setStatsQuiz(null)} 
+        />
       )}
     </div>
   );

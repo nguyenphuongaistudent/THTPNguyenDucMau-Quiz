@@ -72,9 +72,27 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
     return userResults.filter(r => r.quizId === quizId).length;
   };
 
+  const getEffectiveMaxAttempts = (quiz: Quiz) => {
+    let maxAttempts = quiz.maxAttempts || 0;
+    
+    if (quiz.specialAttemptLimits && quiz.specialAttemptLimits.length > 0) {
+      const studentLimit = quiz.specialAttemptLimits.find(l => l.type === 'student' && l.targetId === user.uid);
+      if (studentLimit) {
+        maxAttempts = studentLimit.maxAttempts;
+      } else {
+        const classLimit = quiz.specialAttemptLimits.find(l => l.type === 'class' && l.targetId === user.class);
+        if (classLimit) {
+          maxAttempts = classLimit.maxAttempts;
+        }
+      }
+    }
+    return maxAttempts;
+  };
+
   const isAttemptLimitReached = (quiz: Quiz) => {
-    if (!quiz.maxAttempts || quiz.maxAttempts === 0) return false;
-    return getAttemptCount(quiz.id) >= quiz.maxAttempts;
+    const maxAttempts = getEffectiveMaxAttempts(quiz);
+    if (maxAttempts === 0) return false;
+    return getAttemptCount(quiz.id) >= maxAttempts;
   };
 
   const isRoleAllowed = (quiz: Quiz) => {
@@ -194,6 +212,7 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredQuizzes.map((quiz) => {
             const attempts = getAttemptCount(quiz.id);
+            const effectiveMax = getEffectiveMaxAttempts(quiz);
             const limitReached = isAttemptLimitReached(quiz);
             const roleAllowed = isRoleAllowed(quiz);
             const isActive = quiz.isActive;
@@ -229,12 +248,12 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                       <Clock className="w-3 h-3" />
                       {formatDuration(quiz.duration)}
                     </div>
-                    {quiz.maxAttempts ? (
+                    {effectiveMax > 0 ? (
                       <div className={cn(
                         "text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider",
                         limitReached ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600"
                       )}>
-                        Lượt: {attempts}/{quiz.maxAttempts}
+                        Lượt: {attempts}/{effectiveMax}
                       </div>
                     ) : (
                       <div className="text-[10px] font-bold px-2 py-0.5 rounded bg-stone-50 text-stone-400 uppercase tracking-wider">
