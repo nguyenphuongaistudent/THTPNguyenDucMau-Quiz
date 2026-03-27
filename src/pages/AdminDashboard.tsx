@@ -459,9 +459,6 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     }));
 
     setEditingQuestions(updatedItems);
-    
-    // Clear expanded states as they might be confusing after reorder
-    setExpandedQuestions({});
   };
 
   const handleCreateNew = () => {
@@ -647,6 +644,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         allowedRoles: editingQuiz.allowedRoles || ['student', 'student-vip', 'guest'],
         reviewRoles: editingQuiz.reviewRoles || ['student', 'student-vip', 'guest'],
         specialAttemptLimits: editingQuiz.specialAttemptLimits || [],
+        order: editingQuiz.order ?? 0,
         updatedAt: serverTimestamp()
       };
 
@@ -893,6 +891,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 
   const addQuestion = useCallback(() => {
     setEditingQuestions(prev => [...prev, {
+      id: `new-${Date.now()}`,
       type: 'multiple_choice',
       text: '',
       options: ['', '', '', ''],
@@ -1381,7 +1380,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                       {(provided) => (
                         <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
                           {editingQuestions.map((q, qIndex) => (
-                            <Draggable key={qIndex} draggableId={`q-${qIndex}`} index={qIndex}>
+                            <Draggable key={q.id || `q-${qIndex}`} draggableId={q.id || `q-${qIndex}`} index={qIndex}>
                               {(provided) => (
                                 <div
                                   ref={provided.innerRef}

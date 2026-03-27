@@ -51,11 +51,12 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
       
       // Sort by order, then by createdAt
       const sortedQuizzes = quizList.sort((a, b) => {
-        if (a.order !== undefined && b.order !== undefined) {
-          return a.order - b.order;
+        const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+        const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+        
+        if (orderA !== orderB) {
+          return orderA - orderB;
         }
-        if (a.order !== undefined) return -1;
-        if (b.order !== undefined) return 1;
         
         const dateA = (a.createdAt as any)?.toDate?.() || new Date(0);
         const dateB = (b.createdAt as any)?.toDate?.() || new Date(0);
@@ -313,7 +314,7 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
         </div>
       ) : filteredQuizzes.length > 0 ? (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="quizzes" direction="horizontal" isDropDisabled={user.role !== 'admin' || searchTerm !== '' || selectedSubject !== 'all' || selectedTopic !== 'all'}>
+          <Droppable droppableId="quizzes" isDropDisabled={user.role !== 'admin' || searchTerm !== '' || selectedSubject !== 'all' || selectedTopic !== 'all'}>
             {(provided) => (
               <div 
                 {...provided.droppableProps} 
