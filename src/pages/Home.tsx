@@ -237,7 +237,7 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-4xl font-sans font-medium text-stone-900 italic">Chào mừng, <span translate="no">{user.displayName || user.email.split('@')[0]} </span></h1>
+            <h1 className="text-4xl Open Sans font-medium text-stone-900 italic">Chào mừng, <span translate="no">{user.displayName || user.email.split('@')[0]} </span></h1>
             <button 
               onClick={() => setIsProfileOpen(true)}
               className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all"
