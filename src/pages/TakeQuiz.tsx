@@ -490,6 +490,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
+                  translate="no"
                   className="flex items-center gap-2 bg-emerald-600 text-white py-2 px-6 rounded-xl hover:bg-emerald-700 transition-all font-medium shadow-lg shadow-emerald-200 disabled:opacity-50 text-sm"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
