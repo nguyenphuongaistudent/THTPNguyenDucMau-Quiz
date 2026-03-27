@@ -323,7 +323,7 @@ export default function App() {
 
             <div className="text-center mb-8">
               <h2 className="text-xl font-medium text-stone-900 mb-2">
-                {authMode === 'login' ? 'Chào mừng quay trở lại' : authMode === 'register' ? 'Tạo tài khoản mới' : 'Quên mật khẩu'}
+                {authMode === 'login' ? <span translate="no">'Chào mừng quay trở lại'</span> : authMode === 'register' ? 'Tạo tài khoản mới' : 'Quên mật khẩu'}
               </h2>
               <p className="text-stone-500 text-sm">
                 {authMode === 'login' 
