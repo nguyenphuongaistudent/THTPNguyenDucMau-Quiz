@@ -402,7 +402,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 </button>
               </div>
               <RichText 
-                className="text-base sm:text-lg font-arial text-stone-900 mb-4 leading-relaxed break-words w-full"
+                className="text-sm sm:text-base font-arial text-stone-900 mb-4 leading-relaxed break-words w-full"
                 content={stripPrefix(currentQuestion.text)}
               />
               <div className="grid grid-cols-1 gap-2">

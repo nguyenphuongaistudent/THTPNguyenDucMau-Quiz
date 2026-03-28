@@ -59,12 +59,12 @@ const QuestionEditor = memo(({
             </div>
             <div className="flex-1 min-w-0">
               {!isExpanded ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-start gap-2">
                   <RichText 
-                    className="text-sm text-stone-600 truncate font-medium max-h-10 overflow-hidden"
+                    className="text-xs text-stone-600 line-clamp-2 font-medium max-h-12 overflow-hidden break-words flex-1"
                     content={q.text || 'Câu hỏi chưa có nội dung...'}
                   />
-                  {q.hidden && <span className="text-[10px] font-bold uppercase bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded">Đã ẩn</span>}
+                  {q.hidden && <span className="text-[10px] font-bold uppercase bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded mt-1">Đã ẩn</span>}
                 </div>
               ) : (
                 <div className="flex items-center gap-2">

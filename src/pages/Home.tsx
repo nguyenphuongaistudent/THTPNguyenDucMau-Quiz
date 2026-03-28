@@ -398,8 +398,8 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
                             </div>
                           </div>
                           
-                          <h3 className="text-xl font-medium text-stone-900 mb-2 group-hover:text-emerald-700 transition-colors break-normal">{quiz.title}</h3>
-                          <p className="text-stone-500 text-sm line-clamp-2 mb-4 flex-grow break-normal">
+                          <h3 className="text-xl font-medium text-stone-900 mb-2 group-hover:text-emerald-700 transition-colors break-words">{quiz.title}</h3>
+                          <p className="text-stone-500 text-sm line-clamp-2 mb-4 flex-grow break-words">
                             {quiz.description || "Không có mô tả cho bài thi này."}
                           </p>
                           

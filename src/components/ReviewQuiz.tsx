@@ -153,7 +153,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                         )}
                       </div>
                       <RichText 
-                        className="text-base text-stone-900 break-words w-full font-arial"
+                        className="text-sm text-stone-900 break-words w-full font-arial"
                         content={q.text}
                       />
 
@@ -266,7 +266,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                             <AlertCircle className="w-3 h-3" />
                             Giải thích
                           </p>
-                          <RichText className="text-sm text-stone-600" content={q.explanation} />
+                          <RichText className="text-sm text-stone-600 font-arial break-words" content={q.explanation} />
                         </div>
                       )}
                     </div>

@@ -105,7 +105,7 @@ export default function ImportQuizModal({ onClose, onImport }: ImportQuizModalPr
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-medium text-stone-900 break-normal">
+                    <p className="font-medium text-stone-900 break-words">
                       {file ? file.name : 'Nhấn để chọn file hoặc kéo thả'}
                     </p>
                     <p className="text-xs text-stone-400 mt-1">Hỗ trợ định dạng .json và .docx</p>
@@ -167,8 +167,8 @@ export default function ImportQuizModal({ onClose, onImport }: ImportQuizModalPr
               </div>
               <div className="min-w-0">
                 <h3 className="text-xl font-medium text-stone-900">Phân tích thành công!</h3>
-                <p className="text-stone-500 mt-2 break-normal">
-                  Tìm thấy <strong>{success.questions.length}</strong> câu hỏi trong bài thi <strong className="break-normal">"{success.title}"</strong>.
+                <p className="text-stone-500 mt-2 break-words">
+                  Tìm thấy <strong>{success.questions.length}</strong> câu hỏi trong bài thi <strong className="break-words">"{success.title}"</strong>.
                 </p>
               </div>
 
