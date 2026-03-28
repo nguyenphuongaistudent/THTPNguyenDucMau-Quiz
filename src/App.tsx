@@ -290,7 +290,7 @@ export default function App() {
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <h1 className="text-3xl font-logo font-medium mb-2 italic tracking-tight whitespace-nowrap text-center">Nguyễn Đức Mậu-QuizPro</h1>
+              <h1 className="text-2xl font-logo font-bold mb-2 italic tracking-tight whitespace-nowrap text-center">Nguyễn Đức Mậu-QuizPro</h1>
               <p className="text-stone-400 text-sm">Nền tảng thi trắc nghiệm trực tuyến chuyên nghiệp</p>
             </div>
           </div>
@@ -537,7 +537,7 @@ export default function App() {
           <div className="w-20 h-20 bg-amber-100 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse">
             <Clock className="w-10 h-10 text-amber-600" />
           </div>
-          <h1 className="text-3xl font-serif font-medium text-stone-900 mb-4 italic">Đang chờ phê duyệt</h1>
+          <h1 className="text-2xl font-sans font-bold text-blue-950 mb-4">Đang chờ phê duyệt</h1>
           <p className="text-stone-500 mb-8 leading-relaxed">
             Tài khoản của bạn đã được đăng ký thành công. Vui lòng đợi Quản trị viên hoặc Giáo viên phê duyệt để bắt đầu sử dụng hệ thống.
           </p>
@@ -612,7 +612,7 @@ export default function App() {
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <span className="text-lg font-logo italic font-medium tracking-tight whitespace-nowrap">Nguyễn Đức Mậu-QuizPro</span>
+              <span className="text-lg font-logo italic font-bold tracking-tight whitespace-nowrap">Nguyễn Đức Mậu-QuizPro</span>
             </div>
 
             <div className="flex items-center gap-4">

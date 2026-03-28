@@ -72,7 +72,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
         <div className="bg-white border-b border-stone-200 px-6 py-4 flex items-center justify-between shrink-0 print:hidden">
           <div className="flex items-center gap-4">
             <div className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center font-serif italic text-xl font-bold",
+              "w-12 h-12 rounded-xl flex items-center justify-center font-sans text-xl font-bold",
               result.score >= 8 ? "bg-emerald-100 text-emerald-700" : 
               result.score >= 5 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
             )}>
@@ -153,7 +153,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                         )}
                       </div>
                       <RichText 
-                        className="text-lg font-normal text-stone-900"
+                        className="text-base text-stone-900 break-words w-full font-arial"
                         content={q.text}
                       />
 
@@ -184,7 +184,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                                 )}>
                                   {String.fromCharCode(65 + oIdx)}
                                 </div>
-                                <RichText className="text-stone-700" content={opt} />
+                                <RichText className="text-stone-700 flex-1 min-w-0 break-words font-arial" content={opt} />
                                 {(isAdminOrTeacher || showAnswers[q.id]) && (
                                   <>
                                     {isCorrectChoice && <CheckCircle2 className="w-5 h-5 text-emerald-500 ml-auto" />}
@@ -214,9 +214,9 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
 
                               return (
                                 <div key={oIdx} className="grid grid-cols-[1fr,80px,80px] gap-4 items-center p-4 bg-white rounded-2xl border border-stone-100">
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-xs font-bold text-stone-400 uppercase">{label}.</span>
-                                    <RichText className="text-stone-700" content={opt} />
+                                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <span className="text-xs font-bold text-stone-400 uppercase shrink-0">{label}.</span>
+                                    <RichText className="text-stone-700 flex-1 min-w-0 break-words font-arial" content={opt} />
                                   </div>
                                   <div className="flex justify-center">
                                     <div className={cn(

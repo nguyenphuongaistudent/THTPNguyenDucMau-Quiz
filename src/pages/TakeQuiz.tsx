@@ -283,7 +283,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
           <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-10 h-10 text-red-500" />
           </div>
-          <h2 className="text-2xl font-serif italic font-medium text-stone-900 mb-4">Không thể làm bài thi</h2>
+          <h2 className="text-2xl font-sans font-bold text-blue-950 mb-4">Không thể làm bài thi</h2>
           <p className="text-stone-500 mb-8">{attemptError}</p>
           <button
             onClick={onCancel}
@@ -305,7 +305,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
           <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center mx-auto mb-8">
             <Clock className="w-10 h-10 text-emerald-600" />
           </div>
-          <h1 className="text-3xl font-serif font-medium text-stone-900 mb-4 italic">{quiz.title}</h1>
+          <h1 className="text-2xl font-sans font-bold text-blue-950 mb-4">{quiz.title}</h1>
           <p className="text-stone-500 mb-8 leading-relaxed">
             {quiz.description || "Bài thi này kiểm tra kiến thức tổng quát của bạn."}
           </p>
@@ -366,7 +366,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
           {/* Quiz Header - Inside the column to match width */}
           <div className="sticky top-[72px] z-40 bg-white/80 backdrop-blur-md border border-stone-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-stone-900 rounded-xl flex items-center justify-center text-white font-serif italic font-bold">
+              <div className="w-10 h-10 bg-stone-900 rounded-xl flex items-center justify-center text-white font-sans font-bold">
                 {currentQuestionIndex + 1}
               </div>
               <div>
@@ -383,7 +383,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
 
           {/* Question Card */}
           <div className="bg-white rounded-3xl border border-stone-200 p-4 sm:p-6 md:p-8 shadow-sm min-h-[350px] flex flex-col text-left">
-            <div className="flex-grow min-w-0 break-normal whitespace-pre-wrap text-left">
+            <div className="flex-grow min-w-0 break-words whitespace-pre-wrap text-left">
               <div className="flex justify-between items-start mb-2">
                 <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">
                   {currentQuestion.type === 'multiple_choice' ? 'Phần I: Câu hỏi nhiều lựa chọn' : 'Phần II: Câu hỏi đúng sai'}
@@ -402,7 +402,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 </button>
               </div>
               <RichText 
-                className="text-lg sm:text-xl font-sans font-normal text-stone-900 mb-4 leading-relaxed break-normal whitespace-normal w-full"
+                className="text-base sm:text-lg font-arial text-stone-900 mb-4 leading-relaxed break-words w-full"
                 content={stripPrefix(currentQuestion.text)}
               />
               <div className="grid grid-cols-1 gap-2">
@@ -428,7 +428,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                       </div>
                       <RichText 
                         className={cn(
-                          "text-sm sm:text-base font-sans font-light transition-colors flex-1 min-w-0 break-normal whitespace-pre-wrap w-full text-left",
+                          "text-sm sm:text-base font-arial transition-colors flex-1 min-w-0 break-words w-full text-left",
                           answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
                         )}
                         content={stripPrefix(option)}
@@ -444,7 +444,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                             {label}
                           </div>
                           <RichText 
-                            className="text-stone-700 text-xs sm:text-sm font-sans font-light flex-1 leading-relaxed prose prose-stone max-w-none break-normal whitespace-pre-wrap w-full text-left"
+                            className="text-stone-700 text-xs sm:text-sm font-arial flex-1 min-w-0 leading-relaxed max-w-none break-words w-full text-left"
                             content={stripPrefix(currentQuestion.options[index])}
                           />
                         </div>

@@ -70,7 +70,7 @@ export default function ImportQuizModal({ onClose, onImport }: ImportQuizModalPr
       <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         <div className="px-8 py-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
-          <h2 className="text-2xl font-serif italic font-medium">Nhập đề thi</h2>
+          <h2 className="text-2xl font-sans font-bold text-blue-950">Nhập đề thi</h2>
           <button 
             onClick={onClose}
             className="p-2 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors"

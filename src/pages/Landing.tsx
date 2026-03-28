@@ -22,7 +22,7 @@ export default function Landing({ onLogin, onRegister, registrationEnabled }: La
                 referrerPolicy="no-referrer"
               />
             </div>
-            <span className="text-lg font-logo italic font-medium tracking-tight whitespace-nowrap">Nguyễn Đức Mậu-QuizPro</span>
+            <span className="text-lg font-logo italic font-bold tracking-tight whitespace-nowrap">Nguyễn Đức Mậu-QuizPro</span>
           </div>
           <div className="flex items-center gap-4">
             <button 
@@ -50,7 +50,7 @@ export default function Landing({ onLogin, onRegister, registrationEnabled }: La
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold uppercase tracking-widest mb-8 border border-emerald-100">
               <Shield className="w-3 h-3" /> Nền tảng bảo mật & tin cậy
             </div>
-            <h1 className="text-3xl md:text-5xl font-sans font-bold text-stone-900 mb-8 tracking-tight leading-tight">
+            <h1 className="text-2xl md:text-4xl font-sans font-bold text-stone-900 mb-8 tracking-tight leading-tight">
               Nâng tầm kiến thức với <br /> <span className="text-emerald-600">Hệ thống Nguyễn Đức Mậu - QuizPro</span>
             </h1>
             <p className="text-xl text-stone-500 mb-12 leading-relaxed max-w-2xl mx-auto">

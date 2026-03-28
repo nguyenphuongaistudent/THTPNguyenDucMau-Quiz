@@ -99,7 +99,7 @@ export default function ProfileModal({ user, onClose, onUpdate }: ProfileModalPr
       <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={() => !saving && onClose()} />
       <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="px-8 py-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
-          <h2 className="text-xl font-serif italic font-medium">Thông tin cá nhân</h2>
+          <h2 className="text-xl font-sans font-bold text-blue-950">Thông tin cá nhân</h2>
           <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors">
             <X className="w-5 h-5" />
           </button>

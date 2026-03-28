@@ -311,7 +311,7 @@ const QuizStatsModal = ({ quiz, onClose }: { quiz: Quiz; onClose: () => void }) 
       <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full max-w-4xl max-h-[80vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         <div className="px-8 py-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
-          <h2 className="text-2xl font-serif italic font-medium">Thống kê câu hỏi hay sai: {quiz.title}</h2>
+          <h2 className="text-2xl font-sans font-bold text-blue-950">Thống kê câu hỏi hay sai: {quiz.title}</h2>
           <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors">
             <X className="w-6 h-6" />
           </button>
@@ -327,7 +327,7 @@ const QuizStatsModal = ({ quiz, onClose }: { quiz: Quiz; onClose: () => void }) 
                     {i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <RichText className="text-sm text-stone-800 mb-2" content={s.text} />
+                    <RichText className="text-sm text-stone-800 mb-2 break-words w-full font-arial" content={s.text} />
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
                         <XCircle className="w-3 h-3" /> Sai: {s.wrongCount}
@@ -955,7 +955,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-sans font-bold text-blue-950 mb-2">Quản lý bài thi</h1>
+          <h1 className="text-2xl font-sans font-bold text-blue-950 mb-2">Quản lý bài thi</h1>
           <p className="text-stone-500">Tạo mới và quản lý các bộ đề thi trắc nghiệm.</p>
         </div>
         
@@ -1149,7 +1149,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
           <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={() => !saving && setIsModalOpen(false)} />
           <div className="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             <div className="px-8 py-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
-              <h2 className="text-2xl font-serif italic font-medium">
+              <h2 className="text-2xl font-sans font-bold text-blue-950">
                 {editingQuiz?.id ? 'Chỉnh sửa bài thi' : 'Tạo bài thi mới'}
               </h2>
               <button 

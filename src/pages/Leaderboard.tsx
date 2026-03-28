@@ -95,7 +95,7 @@ export default function Leaderboard() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-sans font-bold text-blue-950 mb-2">Bảng xếp hạng</h1>
+          <h1 className="text-2xl font-sans font-bold text-blue-950 mb-2">Bảng xếp hạng</h1>
           <p className="text-stone-500">Vinh danh những học sinh có thành tích xuất sắc nhất.</p>
         </div>
       </div>
@@ -263,7 +263,7 @@ export default function Leaderboard() {
           <div className="w-20 h-20 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <Trophy className="w-10 h-10 text-stone-200" />
           </div>
-          <h2 className="text-2xl font-serif italic font-medium text-stone-900 mb-2">Chưa có dữ liệu xếp hạng</h2>
+          <h2 className="text-2xl font-sans font-bold text-blue-950 mb-2">Chưa có dữ liệu xếp hạng</h2>
           <p className="text-stone-500 max-w-md mx-auto">
             Hãy tham gia làm bài thi để trở thành người đầu tiên có tên trên bảng xếp hạng!
           </p>

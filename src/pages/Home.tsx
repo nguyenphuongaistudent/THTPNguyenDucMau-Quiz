@@ -245,7 +245,7 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h2 className="text-3xl font-sans font-bold text-blue-950 mb-2">Chào mừng, <span translate="no">{user.displayName || user.email.split('@')[0]} </span></h2>
+            <h2 className="text-2xl font-sans font-bold text-blue-950 mb-2">Chào mừng, <span translate="no">{user.displayName || user.email.split('@')[0]} </span></h2>
             <button 
               onClick={() => setIsProfileOpen(true)}
               className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all"
@@ -452,7 +452,7 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
           <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={() => !saving && setIsProfileOpen(false)} />
           <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-8 py-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
-              <h2 className="text-xl font-serif italic font-medium">Thông tin cá nhân</h2>
+              <h2 className="text-xl font-sans font-bold text-blue-950">Thông tin cá nhân</h2>
               <button onClick={() => setIsProfileOpen(false)} className="p-2 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors">
                 <XCircle className="w-5 h-5" />
               </button>
