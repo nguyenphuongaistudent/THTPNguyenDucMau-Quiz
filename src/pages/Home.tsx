@@ -49,8 +49,15 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
         ...doc.data()
       })) as Quiz[];
       
-      // Sort by order, then by createdAt
+      // Sort by status (for students), then by order, then by createdAt
       const sortedQuizzes = quizList.sort((a, b) => {
+        // If not admin, prioritize isActive (open quizzes first)
+        if (user.role !== 'admin') {
+          if (a.isActive !== b.isActive) {
+            return a.isActive ? -1 : 1;
+          }
+        }
+
         const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
         const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
         
