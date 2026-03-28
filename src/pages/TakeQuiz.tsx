@@ -444,7 +444,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                             {label}
                           </div>
                           <RichText 
-                            className="text-stone-700 text-xs sm:text-sm font-arial flex-1 min-w-0 leading-relaxed max-w-none break-words w-full text-left"
+                            className="text-stone-700 text-sm sm:text-base font-arial flex-1 min-w-0 leading-relaxed max-w-none break-words w-full text-left"
                             content={stripPrefix(currentQuestion.options[index])}
                           />
                         </div>
