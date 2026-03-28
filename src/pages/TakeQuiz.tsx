@@ -402,7 +402,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 </button>
               </div>
               <RichText 
-                className="text-lg sm:text-xl font-sans font-medium text-stone-900 mb-4 leading-relaxed break-normal whitespace-normal w-full"
+                className="text-lg sm:text-xl font-sans font-normal text-stone-900 mb-4 leading-relaxed break-normal whitespace-normal w-full"
                 content={stripPrefix(currentQuestion.text)}
               />
               <div className="grid grid-cols-1 gap-2">
@@ -521,7 +521,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 <p className="text-xs font-medium text-stone-500 mb-1">Thời gian còn lại</p>
                 <p className={cn(
                   "text-xl font-bold whitespace-nowrap",
-                  timeLeft < 60 ? "text-red-600" : "text-slate-500"
+                  timeLeft < 300 ? "text-red-600 font-extrabold animate-pulse" : "text-slate-500"
                 )}>
                   {timeString}
                 </p>

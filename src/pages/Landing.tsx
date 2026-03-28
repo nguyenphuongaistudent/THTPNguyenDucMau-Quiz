@@ -22,7 +22,7 @@ export default function Landing({ onLogin, onRegister, registrationEnabled }: La
                 referrerPolicy="no-referrer"
               />
             </div>
-            <span className="text-lg font-serif italic font-medium tracking-tight whitespace-nowrap">Nguyễn Đức Mậu-QuizPro</span>
+            <span className="text-lg font-logo italic font-medium tracking-tight whitespace-nowrap">Nguyễn Đức Mậu-QuizPro</span>
           </div>
           <div className="flex items-center gap-4">
             <button 

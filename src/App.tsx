@@ -290,7 +290,7 @@ export default function App() {
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <h1 className="text-3xl font-serif font-medium mb-2 italic tracking-tight whitespace-nowrap text-center">Nguyễn Đức Mậu-QuizPro</h1>
+              <h1 className="text-3xl font-logo font-medium mb-2 italic tracking-tight whitespace-nowrap text-center">Nguyễn Đức Mậu-QuizPro</h1>
               <p className="text-stone-400 text-sm">Nền tảng thi trắc nghiệm trực tuyến chuyên nghiệp</p>
             </div>
           </div>
@@ -612,7 +612,7 @@ export default function App() {
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <span className="text-lg font-serif italic font-medium tracking-tight whitespace-nowrap">Nguyễn Đức Mậu-QuizPro</span>
+              <span className="text-lg font-logo italic font-medium tracking-tight whitespace-nowrap">Nguyễn Đức Mậu-QuizPro</span>
             </div>
 
             <div className="flex items-center gap-4">

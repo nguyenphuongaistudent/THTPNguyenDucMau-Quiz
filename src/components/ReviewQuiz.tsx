@@ -153,7 +153,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                         )}
                       </div>
                       <RichText 
-                        className="text-lg font-medium text-stone-900"
+                        className="text-lg font-normal text-stone-900"
                         content={q.text}
                       />
 
