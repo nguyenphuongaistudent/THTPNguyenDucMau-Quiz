@@ -385,11 +385,12 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       
       // Sort by order, then by createdAt
       const sortedQuizzes = quizList.sort((a, b) => {
-        if (a.order !== undefined && b.order !== undefined) {
-          return a.order - b.order;
+        const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+        const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+        
+        if (orderA !== orderB) {
+          return orderA - orderB;
         }
-        if (a.order !== undefined) return -1;
-        if (b.order !== undefined) return 1;
         
         const dateA = (a.createdAt as any)?.toDate?.() || new Date(0);
         const dateB = (b.createdAt as any)?.toDate?.() || new Date(0);
@@ -866,6 +867,19 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     }
   };
 
+  const handleToggleQuizStatus = async (quiz: Quiz) => {
+    try {
+      await updateDoc(doc(db, 'quizzes', quiz.id), {
+        isActive: !quiz.isActive,
+        updatedAt: serverTimestamp()
+      });
+      toast.success(`Đã ${!quiz.isActive ? 'mở' : 'đóng'} bài thi thành công`);
+    } catch (error) {
+      console.error('Error toggling quiz status:', error);
+      toast.error('Không thể thay đổi trạng thái bài thi');
+    }
+  };
+
   const handleDeleteQuiz = async (id: string) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa bài thi này? Tất cả dữ liệu liên quan sẽ bị mất.')) return;
     
@@ -1045,12 +1059,29 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                     {formatDuration(quiz.duration)}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={cn(
-                      "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium",
-                      quiz.isActive ? "bg-emerald-100 text-emerald-700" : "bg-stone-100 text-stone-600"
-                    )}>
-                      {quiz.isActive ? "Đang mở" : "Đã đóng"}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleToggleQuizStatus(quiz)}
+                        title={quiz.isActive ? "Đóng bài thi" : "Mở bài thi"}
+                        className={cn(
+                          "relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2",
+                          quiz.isActive ? "bg-emerald-600" : "bg-stone-300"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "inline-block h-3 w-3 transform rounded-full bg-white transition-transform",
+                            quiz.isActive ? "translate-x-6" : "translate-x-1"
+                          )}
+                        />
+                      </button>
+                      <span className={cn(
+                        "text-xs font-medium min-w-[60px]",
+                        quiz.isActive ? "text-emerald-700" : "text-stone-500"
+                      )}>
+                        {quiz.isActive ? "Đang mở" : "Đã đóng"}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-stone-500">
                     {formatDate(quiz.createdAt)}

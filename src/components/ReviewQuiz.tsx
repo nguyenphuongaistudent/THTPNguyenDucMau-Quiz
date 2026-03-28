@@ -28,10 +28,16 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
           setQuiz({ id: quizDoc.id, ...quizDoc.data() } as Quiz);
           
           const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', result.quizId, 'questions'), orderBy('order')));
-          const questionList = questionsSnapshot.docs.map(doc => ({
+          let questionList = questionsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
           })) as Question[];
+
+          // Filter out hidden questions for non-admins/teachers
+          if (!isAdminOrTeacher) {
+            questionList = questionList.filter(q => !q.hidden);
+          }
+
           setQuestions(questionList);
         }
       } catch (error) {
