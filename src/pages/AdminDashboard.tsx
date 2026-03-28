@@ -955,7 +955,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-serif font-medium text-stone-900 mb-2 italic">Quản lý bài thi</h1>
+          <h1 className="text-3xl font-sans font-bold text-blue-950 mb-2">Quản lý bài thi</h1>
           <p className="text-stone-500">Tạo mới và quản lý các bộ đề thi trắc nghiệm.</p>
         </div>
         

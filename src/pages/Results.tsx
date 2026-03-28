@@ -143,7 +143,7 @@ export default function Results({ user }: ResultsProps) {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-serif font-medium text-stone-900 mb-2 italic">Kết quả học tập</h1>
+          <h1 className="text-3xl font-sans font-bold text-blue-950 mb-2">Kết quả học tập</h1>
           <p className="text-stone-500">Xem lại các bài thi đã thực hiện và điểm số của bạn.</p>
         </div>
         
