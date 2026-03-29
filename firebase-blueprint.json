@@ -52,6 +52,16 @@
             }
           },
           "description": "Giới hạn lượt thi đặc biệt cho lớp hoặc học sinh cụ thể"
+        },
+        "securitySettings": {
+          "type": "object",
+          "properties": {
+            "preventTabSwitch": { "type": "boolean", "description": "Ngăn chặn chuyển tab/cửa sổ" },
+            "maxViolations": { "type": "integer", "description": "Số lần vi phạm tối đa" },
+            "autoSubmitOnMaxViolations": { "type": "boolean", "description": "Tự động nộp bài khi vượt quá số lần vi phạm" },
+            "showWarningOnViolation": { "type": "boolean", "description": "Hiển thị cảnh báo khi vi phạm" }
+          },
+          "description": "Cấu hình bảo mật riêng cho từng bài thi"
         }
       },
       "required": ["title", "duration", "createdBy"]

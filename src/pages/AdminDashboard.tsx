@@ -6,7 +6,7 @@ import { saveAs } from 'file-saver';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, writeBatch, deleteField, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, Question, User, QuestionType, Result, SpecialAttemptLimit } from '../types';
-import { Plus, Trash2, Edit, ChevronRight, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Save, X, List, PlusCircle, Upload, Download, FileSpreadsheet, ChevronDown, ChevronUp, BarChart3, UserPlus, Users, GripVertical, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Edit, ChevronRight, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Save, X, List, PlusCircle, Upload, Download, FileSpreadsheet, ChevronDown, ChevronUp, BarChart3, UserPlus, Users, GripVertical, Eye, EyeOff, Shield } from 'lucide-react';
 import { formatDuration, formatDate, cn } from '../lib/utils';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import ImportQuizModal from '../components/ImportQuizModal';
@@ -649,6 +649,12 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         reviewRoles: editingQuiz.reviewRoles || ['student', 'student-vip', 'guest'],
         specialAttemptLimits: editingQuiz.specialAttemptLimits || [],
         order: editingQuiz.order ?? 0,
+        securitySettings: editingQuiz.securitySettings || {
+          preventTabSwitch: false,
+          maxViolations: 0,
+          autoSubmitOnMaxViolations: false,
+          showWarningOnViolation: true
+        },
         updatedAt: serverTimestamp()
       };
 
@@ -1406,6 +1412,99 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                     ))}
                   </div>
                 </div>
+
+                {/* Security Settings */}
+                <section className="space-y-6 pt-6 border-t border-stone-100">
+                  <h3 className="text-sm font-semibold text-stone-400 uppercase tracking-widest flex items-center gap-2">
+                    <Shield className="w-4 h-4" /> Cấu hình bảo mật thi
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl border border-stone-200">
+                        <div>
+                          <p className="text-sm font-bold text-stone-900">Giám sát chuyển Tab/Cửa sổ</p>
+                          <p className="text-xs text-stone-500">Ghi lại vi phạm khi học sinh rời khỏi màn hình thi</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true };
+                            setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, preventTabSwitch: !currentSettings.preventTabSwitch } });
+                          }}
+                          className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                            editingQuiz?.securitySettings?.preventTabSwitch ? "bg-red-600" : "bg-stone-300"
+                          )}
+                        >
+                          <span className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                            editingQuiz?.securitySettings?.preventTabSwitch ? "translate-x-6" : "translate-x-1"
+                          )} />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl border border-stone-200">
+                        <div>
+                          <p className="text-sm font-bold text-stone-900">Hiển thị cảnh báo vi phạm</p>
+                          <p className="text-xs text-stone-500">Hiện thông báo nhắc nhở ngay khi học sinh vi phạm</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true };
+                            setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, showWarningOnViolation: !currentSettings.showWarningOnViolation } });
+                          }}
+                          className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                            editingQuiz?.securitySettings?.showWarningOnViolation ?? true ? "bg-emerald-600" : "bg-stone-300"
+                          )}
+                        >
+                          <span className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                            editingQuiz?.securitySettings?.showWarningOnViolation ?? true ? "translate-x-6" : "translate-x-1"
+                          )} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-stone-700">Số lần vi phạm tối đa (0 = không giới hạn)</label>
+                        <input
+                          type="number"
+                          value={editingQuiz?.securitySettings?.maxViolations || 0}
+                          onChange={(e) => {
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true };
+                            setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, maxViolations: Number(e.target.value) } });
+                          }}
+                          className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                          placeholder="VD: 3"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl border border-stone-200">
+                        <div>
+                          <p className="text-sm font-bold text-stone-900">Tự động nộp bài khi hết lượt</p>
+                          <p className="text-xs text-stone-500">Nộp bài ngay khi đạt số lần vi phạm tối đa</p>
+                        </div>
+                        <button
+                          disabled={!editingQuiz?.securitySettings?.maxViolations}
+                          onClick={() => {
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true };
+                            setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, autoSubmitOnMaxViolations: !currentSettings.autoSubmitOnMaxViolations } });
+                          }}
+                          className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50",
+                            editingQuiz?.securitySettings?.autoSubmitOnMaxViolations ? "bg-red-600" : "bg-stone-300"
+                          )}
+                        >
+                          <span className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                            editingQuiz?.securitySettings?.autoSubmitOnMaxViolations ? "translate-x-6" : "translate-x-1"
+                          )} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
               </section>
 
               {/* Questions */}

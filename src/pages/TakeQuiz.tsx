@@ -32,16 +32,30 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   const lastViolationTime = useRef<number>(0);
 
   useEffect(() => {
-    if (!isStarted || submitting) return;
+    if (!isStarted || submitting || !quiz) return;
+
+    const settings = quiz.securitySettings || {
+      preventTabSwitch: false,
+      maxViolations: 0,
+      autoSubmitOnMaxViolations: false,
+      showWarningOnViolation: true
+    };
 
     const recordViolation = (reason: string) => {
+      if (!settings.preventTabSwitch) return;
+
       const now = Date.now();
       // Prevent double counting if events fire within 500ms
       if (now - lastViolationTime.current < 500) return;
       
       lastViolationTime.current = now;
-      setViolationCount(prev => prev + 1);
-      setShowViolationWarning(true);
+      setViolationCount(prev => {
+        const newCount = prev + 1;
+        if (settings.showWarningOnViolation) {
+          setShowViolationWarning(true);
+        }
+        return newCount;
+      });
     };
 
     // 1. Prevent Tab Switching / Leaving the window
@@ -90,8 +104,10 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
     window.addEventListener('contextmenu', preventDefault);
     window.addEventListener('keydown', handleKeyDown);
 
-    // Add CSS class to body to prevent selection
-    document.body.classList.add('select-none');
+    // Add CSS class to body to prevent selection if tab switch prevention is on
+    if (quiz.securitySettings?.preventTabSwitch) {
+      document.body.classList.add('select-none');
+    }
 
     return () => {
       window.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -103,7 +119,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
       window.removeEventListener('keydown', handleKeyDown);
       document.body.classList.remove('select-none');
     };
-  }, [isStarted, submitting]);
+  }, [isStarted, submitting, quiz]);
 
   useEffect(() => {
     const fetchQuizData = async () => {
@@ -343,6 +359,19 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
       setSubmitting(false);
     }
   }, [submitting, questions, answers, quiz, user, quizId, onComplete, violationCount, showSubmitConfirm]);
+
+  useEffect(() => {
+    if (!isStarted || submitting || !quiz) return;
+    
+    const settings = quiz.securitySettings;
+    if (settings?.maxViolations && settings.maxViolations > 0 && violationCount >= settings.maxViolations && settings.autoSubmitOnMaxViolations) {
+      toast.error(`Bạn đã vi phạm ${violationCount} lần (vượt quá giới hạn ${settings.maxViolations}). Bài thi sẽ tự động nộp!`, {
+        duration: 5000,
+        position: 'top-center'
+      });
+      handleSubmit(true);
+    }
+  }, [violationCount, quiz, isStarted, submitting, handleSubmit]);
 
   useEffect(() => {
     if (!isStarted || timeLeft <= 0) {
@@ -754,7 +783,15 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               <div className="bg-red-50 rounded-2xl p-4 mb-6 border border-red-100">
                 <p className="text-red-700 text-sm font-medium text-center">
                   Số lần vi phạm: <span className="text-lg font-bold">{violationCount}</span>
+                  {quiz?.securitySettings?.maxViolations ? (
+                    <span className="text-stone-400 font-normal"> / {quiz.securitySettings.maxViolations}</span>
+                  ) : null}
                 </p>
+                {quiz?.securitySettings?.autoSubmitOnMaxViolations && quiz?.securitySettings?.maxViolations ? (
+                  <p className="text-[10px] text-red-500 text-center mt-1 uppercase font-bold tracking-wider">
+                    Bài thi sẽ tự động nộp nếu vi phạm quá {quiz.securitySettings.maxViolations} lần
+                  </p>
+                ) : null}
               </div>
               <button
                 onClick={() => setShowViolationWarning(false)}
