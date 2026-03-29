@@ -28,6 +28,7 @@ export default function Results({ user }: ResultsProps) {
   const [filterSchool, setFilterSchool] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [filterStudent, setFilterStudent] = useState('');
+  const [filterQuiz, setFilterQuiz] = useState('');
 
   // Derived filter options from system (all users)
   const schools = Array.from(new Set(allUsers.map(u => u.school).filter(Boolean))).sort();
@@ -46,11 +47,16 @@ export default function Results({ user }: ResultsProps) {
       .filter(Boolean)
   )).sort();
 
+  const quizzes = Array.from(new Set(
+    results.map(r => r.quizTitle).filter(Boolean)
+  )).sort();
+
   const filteredResults = results.filter(r => {
     const matchSchool = !filterSchool || r.studentSchool === filterSchool;
     const matchClass = !filterClass || r.studentClass === filterClass;
     const matchStudent = !filterStudent || r.studentName === filterStudent;
-    return matchSchool && matchClass && matchStudent;
+    const matchQuiz = !filterQuiz || r.quizTitle === filterQuiz;
+    return matchSchool && matchClass && matchStudent && matchQuiz;
   });
 
   const handleDeleteResults = async (ids: string[]) => {
@@ -167,67 +173,87 @@ export default function Results({ user }: ResultsProps) {
         </div>
       </div>
 
-      {(user.role === 'admin' || user.role === 'teacher') && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-6 rounded-3xl border border-stone-200 shadow-sm">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
-              <School className="w-3 h-3" />
-              Lọc theo Trường
-            </label>
-            <select
-              value={filterSchool}
-              onChange={(e) => {
-                setFilterSchool(e.target.value);
-                setFilterClass('');
-                setFilterStudent('');
-              }}
-              className="w-full px-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none"
-            >
-              <option value="">Tất cả trường</option>
-              {schools.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
-              <BookOpen className="w-3 h-3" />
-              Lọc theo Lớp
-            </label>
-            <select
-              value={filterClass}
-              onChange={(e) => {
-                setFilterClass(e.target.value);
-                setFilterStudent('');
-              }}
-              disabled={!filterSchool && schools.length > 0}
-              className="w-full px-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none disabled:opacity-50"
-            >
-              <option value="">Tất cả lớp</option>
-              {classes.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
-              <UserIcon className="w-3 h-3" />
-              Lọc theo Học sinh
-            </label>
-            <select
-              value={filterStudent}
-              onChange={(e) => setFilterStudent(e.target.value)}
-              disabled={!filterClass && classes.length > 0}
-              className="w-full px-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none disabled:opacity-50"
-            >
-              <option value="">Tất cả học sinh</option>
-              {students.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-white p-6 rounded-3xl border border-stone-200 shadow-sm">
+        {(user.role === 'admin' || user.role === 'teacher') ? (
+          <>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
+                <School className="w-3 h-3" />
+                Lọc theo Trường
+              </label>
+              <select
+                value={filterSchool}
+                onChange={(e) => {
+                  setFilterSchool(e.target.value);
+                  setFilterClass('');
+                  setFilterStudent('');
+                }}
+                className="w-full px-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none"
+              >
+                <option value="">Tất cả trường</option>
+                {schools.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
+                <BookOpen className="w-3 h-3" />
+                Lọc theo Lớp
+              </label>
+              <select
+                value={filterClass}
+                onChange={(e) => {
+                  setFilterClass(e.target.value);
+                  setFilterStudent('');
+                }}
+                disabled={!filterSchool && schools.length > 0}
+                className="w-full px-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none disabled:opacity-50"
+              >
+                <option value="">Tất cả lớp</option>
+                {classes.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
+                <UserIcon className="w-3 h-3" />
+                Lọc theo Học sinh
+              </label>
+              <select
+                value={filterStudent}
+                onChange={(e) => setFilterStudent(e.target.value)}
+                disabled={!filterClass && classes.length > 0}
+                className="w-full px-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none disabled:opacity-50"
+              >
+                <option value="">Tất cả học sinh</option>
+                {students.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+          </>
+        ) : (
+          <div className="lg:col-span-3 hidden lg:block"></div>
+        )}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
+            <Filter className="w-3 h-3" />
+            Lọc theo Bài thi
+          </label>
+          <select
+            value={filterQuiz}
+            onChange={(e) => setFilterQuiz(e.target.value)}
+            className="w-full px-4 py-2 bg-stone-50 border border-stone-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none"
+          >
+            <option value="">Tất cả bài thi</option>
+            {quizzes.map(q => (
+              <option key={q} value={q}>{q}</option>
+            ))}
+          </select>
         </div>
-      )}
+      </div>
 
       {loading ? (
         <div className="space-y-4">
