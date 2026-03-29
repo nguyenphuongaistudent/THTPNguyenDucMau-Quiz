@@ -68,7 +68,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
       // Block PrintScreen (Note: Hard to block completely, but we can try)
       if (e.key === 'PrintScreen') {
         e.preventDefault();
-        alert('Chụp màn hình bị cấm trong lúc làm bài thi!');
+        toast.error('Chụp màn hình bị cấm trong lúc làm bài thi!');
         return false;
       }
     };
@@ -323,7 +323,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, questions, answers, quiz, user, quizId, onComplete, violationCount]);
+  }, [submitting, questions, answers, quiz, user, quizId, onComplete, violationCount, showSubmitConfirm]);
 
   useEffect(() => {
     if (!isStarted || timeLeft <= 0) {
@@ -755,6 +755,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               </div>
               <h3 className="text-2xl font-bold text-stone-900 text-center mb-2">Xác nhận nộp bài?</h3>
               <p className="text-stone-600 text-center mb-8 leading-relaxed">
+                Bạn đã hoàn thành <span className="font-bold text-emerald-600">{answeredCount}/{questions.length}</span> câu hỏi. 
                 Bạn có chắc chắn muốn nộp bài thi ngay bây giờ? Sau khi nộp, bạn sẽ không thể thay đổi câu trả lời.
               </p>
               

@@ -543,7 +543,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       downloadFile(JSON.stringify(exportData, null, 2), `${quiz.title.replace(/\s+/g, '_')}.json`, 'application/json');
     } catch (error) {
       console.error('Error exporting quiz:', error);
-      alert('Có lỗi xảy ra khi xuất bài thi.');
+      toast.error('Có lỗi xảy ra khi xuất bài thi.');
     }
   };
 
@@ -554,7 +554,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       const results = resultsSnapshot.docs.map(doc => doc.data());
 
       if (results.length === 0) {
-        alert('Chưa có kết quả nào cho bài thi này.');
+        toast.error('Chưa có kết quả nào cho bài thi này.');
         return;
       }
 
@@ -587,7 +587,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       XLSX.writeFile(wb, `Ket_qua_${quiz.title.replace(/\s+/g, '_')}.xlsx`);
     } catch (error) {
       console.error('Error exporting results:', error);
-      alert('Có lỗi xảy ra khi xuất kết quả.');
+      toast.error('Có lỗi xảy ra khi xuất kết quả.');
     } finally {
       setSaving(false);
     }
@@ -595,7 +595,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 
   const handleSave = async () => {
     if (!editingQuiz?.title || !editingQuiz?.duration) {
-      alert('Vui lòng nhập tiêu đề và thời gian làm bài.');
+      toast.error('Vui lòng nhập tiêu đề và thời gian làm bài.');
       return;
     }
 
@@ -615,7 +615,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     });
     
     if (validQuestions.length === 0) {
-      alert('Vui lòng thêm ít nhất một câu hỏi hoàn chỉnh (có nội dung và đầy đủ các lựa chọn).');
+      toast.error('Vui lòng thêm ít nhất một câu hỏi hoàn chỉnh (có nội dung và đầy đủ các lựa chọn).');
       return;
     }
 
@@ -626,7 +626,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     if (isNewQuiz || titleChanged) {
       const duplicate = quizzes.find(q => q.title.trim().toLowerCase() === editingQuiz.title.trim().toLowerCase() && q.id !== editingQuiz.id);
       if (duplicate) {
-        alert('Tên bài thi đã tồn tại. Vui lòng chọn tên khác.');
+        toast.error('Tên bài thi đã tồn tại. Vui lòng chọn tên khác.');
         return;
       }
     }
@@ -761,7 +761,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       setEditingQuiz(null);
       setEditingQuestions([]);
       setOriginalQuestionIds([]);
-      alert('Lưu bài thi thành công!');
+      toast.success('Lưu bài thi thành công!');
     } catch (error: any) {
       console.error('Error saving quiz:', error);
       let errorMessage = 'Có lỗi xảy ra khi lưu bài thi.';
@@ -775,7 +775,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       } catch (e) {
         errorMessage = `Lỗi: ${error.message || 'Không xác định'}`;
       }
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
