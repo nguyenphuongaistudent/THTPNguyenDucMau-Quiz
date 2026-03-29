@@ -61,7 +61,7 @@ const QuestionEditor = memo(({
               {!isExpanded ? (
                 <div className="flex items-start gap-2">
                   <RichText 
-                    className="text-xs text-stone-600 line-clamp-2 font-medium max-h-12 overflow-hidden break-words flex-1"
+                    className="text-xs text-stone-600 line-clamp-2 font-medium max-h-12 overflow-hidden break-normal flex-1"
                     content={q.text || 'Câu hỏi chưa có nội dung...'}
                   />
                   {q.hidden && <span className="text-[10px] font-bold uppercase bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded mt-1">Đã ẩn</span>}
@@ -327,7 +327,7 @@ const QuizStatsModal = ({ quiz, onClose }: { quiz: Quiz; onClose: () => void }) 
                     {i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <RichText className="text-sm text-stone-800 mb-2 break-words w-full font-arial" content={s.text} />
+                    <RichText className="text-sm text-stone-800 mb-2 break-normal w-full font-arial" content={s.text} />
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
                         <XCircle className="w-3 h-3" /> Sai: {s.wrongCount}

@@ -47,6 +47,7 @@ body {
   font-family: inherit;
   hyphens: none !important;
   max-width: 100%;
+  line-break: auto !important;
 }
 
 .markdown-body p {

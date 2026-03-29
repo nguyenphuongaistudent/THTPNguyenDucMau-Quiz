@@ -23,3 +23,13 @@ export function formatDate(date: any) {
     minute: '2-digit'
   });
 }
+
+export function normalizeText(text: string): string {
+  if (!text) return '';
+  // Replace non-breaking spaces, zero-width spaces, and other hidden characters with standard spaces
+  // Also normalize multiple spaces to a single space
+  return text
+    .replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000\uFEFF]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}

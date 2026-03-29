@@ -158,7 +158,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                         )}
                       </div>
                       <RichText 
-                        className="text-sm text-stone-900 break-words w-full font-arial"
+                        className="text-sm text-stone-900 break-normal w-full font-arial"
                         content={q.text}
                       />
 
@@ -189,7 +189,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                                 )}>
                                   {String.fromCharCode(65 + oIdx)}
                                 </div>
-                                <RichText className="text-stone-700 flex-1 min-w-0 break-words font-arial" content={opt} />
+                                <RichText className="text-stone-700 flex-1 min-w-0 break-normal font-arial" content={opt} />
                                 {(isAdminOrTeacher || showAnswers[q.id]) && (
                                   <>
                                     {isCorrectChoice && <CheckCircle2 className="w-5 h-5 text-emerald-500 ml-auto" />}
@@ -221,7 +221,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                                 <div key={oIdx} className="grid grid-cols-[1fr,80px,80px] gap-4 items-center p-4 bg-white rounded-2xl border border-stone-100">
                                   <div className="flex items-center gap-3 min-w-0 flex-1">
                                     <span className="text-xs font-bold text-stone-400 uppercase shrink-0">{label}.</span>
-                                    <RichText className="text-stone-700 flex-1 min-w-0 break-words font-arial" content={opt} />
+                                    <RichText className="text-stone-700 flex-1 min-w-0 break-normal font-arial" content={opt} />
                                   </div>
                                   <div className="flex justify-center">
                                     <div className={cn(
@@ -271,7 +271,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
                             <AlertCircle className="w-3 h-3" />
                             Giải thích
                           </p>
-                          <RichText className="text-sm text-stone-600 font-arial break-words" content={q.explanation} />
+                          <RichText className="text-sm text-stone-600 font-arial break-normal" content={q.explanation} />
                         </div>
                       )}
                     </div>

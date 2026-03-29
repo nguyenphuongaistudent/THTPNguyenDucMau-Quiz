@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import DOMPurify from 'dompurify';
 // @ts-ignore
 import renderMathInElement from 'katex/dist/contrib/auto-render';
-import { cn } from '../lib/utils';
+import { cn, normalizeText } from '../lib/utils';
 
 interface RichTextProps {
   content: string;
@@ -26,11 +26,23 @@ const RichText: React.FC<RichTextProps> = ({ content, className }) => {
     }
   }, [content]);
 
+  // Normalize text content while preserving HTML structure
+  const normalizedContent = content
+    .replace(/>([^<]+)</g, (match, text) => {
+      return `>${normalizeText(text)}<`;
+    })
+    .replace(/^([^<]+)</, (match, text) => {
+      return `${normalizeText(text)}<`;
+    })
+    .replace(/>([^<]+)$/, (match, text) => {
+      return `>${normalizeText(text)}`;
+    });
+
   return (
     <div
       ref={containerRef}
       className={cn("markdown-body", className)}
-      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(normalizedContent) }}
     />
   );
 };

@@ -395,7 +395,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
 
           {/* Question Card */}
           <div className="bg-white rounded-3xl border border-stone-200 p-4 sm:p-6 md:p-8 shadow-sm min-h-[350px] flex flex-col text-left">
-            <div className="flex-grow min-w-0 break-words whitespace-pre-wrap text-left">
+            <div className="flex-grow min-w-0 break-normal whitespace-pre-wrap text-left">
               <div className="flex justify-between items-start mb-2">
                 <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">
                   {currentQuestion.type === 'multiple_choice' ? 'Phần I: Câu hỏi nhiều lựa chọn' : 'Phần II: Câu hỏi đúng sai'}
@@ -414,7 +414,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 </button>
               </div>
               <RichText 
-                className="text-sm sm:text-base font-arial text-stone-900 mb-4 leading-relaxed break-words w-full"
+                className="text-sm sm:text-base font-arial text-stone-900 mb-4 leading-relaxed break-normal w-full"
                 content={stripPrefix(currentQuestion.text)}
               />
               <div className="grid grid-cols-1 gap-2">
@@ -440,7 +440,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                       </div>
                       <RichText 
                         className={cn(
-                          "text-sm sm:text-base font-arial transition-colors flex-1 min-w-0 break-words w-full text-left",
+                          "text-sm sm:text-base font-arial transition-colors flex-1 min-w-0 break-normal w-full text-left",
                           answers[currentQuestionIndex] === index ? "text-emerald-900" : "text-stone-700"
                         )}
                         content={stripPrefix(option)}
@@ -456,7 +456,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                             {label}
                           </div>
                           <RichText 
-                            className="text-stone-700 text-sm sm:text-base font-arial flex-1 min-w-0 leading-relaxed max-w-none break-words w-full text-left"
+                            className="text-stone-700 text-sm sm:text-base font-arial flex-1 min-w-0 leading-relaxed max-w-none break-normal w-full text-left"
                             content={stripPrefix(currentQuestion.options[index])}
                           />
                         </div>
