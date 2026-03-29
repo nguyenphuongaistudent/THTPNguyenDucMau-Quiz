@@ -27,22 +27,14 @@ const RichText: React.FC<RichTextProps> = ({ content, className }) => {
   }, [content]);
 
   // Normalize text content while preserving HTML structure
-  const normalizedContent = content
-    .replace(/>([^<]+)</g, (match, text) => {
-      return `>${normalizeText(text)}<`;
-    })
-    .replace(/^([^<]+)</, (match, text) => {
-      return `${normalizeText(text)}<`;
-    })
-    .replace(/>([^<]+)$/, (match, text) => {
-      return `>${normalizeText(text)}`;
-    });
+  const sanitized = DOMPurify.sanitize(content);
+  const normalizedContent = normalizeText(sanitized);
 
   return (
     <div
       ref={containerRef}
       className={cn("markdown-body", className)}
-      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(normalizedContent) }}
+      dangerouslySetInnerHTML={{ __html: normalizedContent }}
     />
   );
 };

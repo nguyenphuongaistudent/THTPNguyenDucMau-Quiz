@@ -25,6 +25,74 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   const [submitting, setSubmitting] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   const [attemptError, setAttemptError] = useState<string | null>(null);
+  const [violationCount, setViolationCount] = useState(0);
+  const [showViolationWarning, setShowViolationWarning] = useState(false);
+
+  useEffect(() => {
+    if (!isStarted || submitting) return;
+
+    // 1. Prevent Tab Switching / Leaving the window
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setViolationCount(prev => prev + 1);
+        setShowViolationWarning(true);
+      }
+    };
+
+    const handleBlur = () => {
+      setViolationCount(prev => prev + 1);
+      setShowViolationWarning(true);
+    };
+
+    // 2. Prevent Copy/Cut/Paste/ContextMenu
+    const preventDefault = (e: Event) => e.preventDefault();
+    
+    // 3. Prevent Keyboard Shortcuts (Ctrl+C, Ctrl+V, Ctrl+P, Ctrl+S, Ctrl+Shift+I, F12, PrintScreen)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isCtrl = e.ctrlKey || e.metaKey;
+      
+      // Block Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+P, Ctrl+S, Ctrl+U, Ctrl+Shift+I
+      if (isCtrl && ['c', 'v', 'x', 'p', 's', 'u', 'i'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+        return false;
+      }
+
+      // Block F12
+      if (e.key === 'F12') {
+        e.preventDefault();
+        return false;
+      }
+
+      // Block PrintScreen (Note: Hard to block completely, but we can try)
+      if (e.key === 'PrintScreen') {
+        e.preventDefault();
+        alert('Chụp màn hình bị cấm trong lúc làm bài thi!');
+        return false;
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('copy', preventDefault);
+    window.addEventListener('cut', preventDefault);
+    window.addEventListener('paste', preventDefault);
+    window.addEventListener('contextmenu', preventDefault);
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Add CSS class to body to prevent selection
+    document.body.classList.add('select-none');
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('copy', preventDefault);
+      window.removeEventListener('cut', preventDefault);
+      window.removeEventListener('paste', preventDefault);
+      window.removeEventListener('contextmenu', preventDefault);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.classList.remove('select-none');
+    };
+  }, [isStarted, submitting]);
 
   useEffect(() => {
     const fetchQuizData = async () => {
@@ -233,7 +301,8 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         correctAnswers: correctCount,
         completedAt: serverTimestamp(),
         answers: sanitizedAnswers,
-        shuffledQuestions: questions
+        shuffledQuestions: questions,
+        violationCount: violationCount
       });
 
       onComplete();
@@ -639,6 +708,32 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
             </div>
           </div>
         </div>
+
+        {showViolationWarning && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-red-100 animate-in fade-in zoom-in duration-300">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertCircle className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-stone-900 text-center mb-2">Cảnh báo vi phạm!</h3>
+              <p className="text-stone-600 text-center mb-6">
+                Bạn vừa rời khỏi màn hình làm bài thi. Hành động này đã được ghi lại. 
+                Vui lòng tập trung làm bài và không chuyển tab hoặc mở ứng dụng khác.
+              </p>
+              <div className="bg-red-50 rounded-2xl p-4 mb-6 border border-red-100">
+                <p className="text-red-700 text-sm font-medium text-center">
+                  Số lần vi phạm: <span className="text-lg font-bold">{violationCount}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setShowViolationWarning(false)}
+                className="w-full bg-stone-900 text-white py-3 rounded-xl font-bold hover:bg-stone-800 transition-all shadow-lg"
+              >
+                Tôi đã hiểu và tiếp tục làm bài
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

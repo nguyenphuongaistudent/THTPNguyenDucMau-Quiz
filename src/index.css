@@ -132,4 +132,18 @@ body {
   background: #999;
 }
 
+/* Security styles */
+.select-none {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+@media print {
+  body {
+    display: none !important;
+  }
+}
+
 
