@@ -177,55 +177,83 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
             questionList = questionList.filter(q => !q.hidden);
           }
 
-          // Helper to shuffle array
+          // Seeded random number generator
+          const seededRandom = (seed: string) => {
+            let h = 0;
+            for (let i = 0; i < seed.length; i++) {
+              h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+            }
+            return () => {
+              h = Math.imul(48271, h) | 0;
+              return (h >>> 0) / 2147483647;
+            };
+          };
+
+          const rng = seededRandom(user.uid + quizId + attemptCount);
+
+          // Helper to shuffle array with seeded RNG
           const shuffleArray = <T,>(array: T[]): T[] => {
             const newArr = [...array];
             for (let i = newArr.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
+              const j = Math.floor(rng() * (i + 1));
               [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
             }
             return newArr;
           };
 
+          const settings = quizData.securitySettings || {
+            preventTabSwitch: false,
+            maxViolations: 0,
+            autoSubmitOnMaxViolations: false,
+            showWarningOnViolation: true,
+            shuffleQuestions: true,
+            shuffleOptions: true
+          };
+
           // Shuffle options within each question
-          questionList = questionList.map(q => {
-            if (q.type === 'multiple_choice' && q.options) {
-              const optionsWithCorrect = q.options.map((opt, idx) => ({
-                text: opt,
-                isCorrect: idx === q.correctOptionIndex
-              }));
-              const shuffledOptions = shuffleArray(optionsWithCorrect);
-              return {
-                ...q,
-                options: shuffledOptions.map(o => o.text),
-                correctOptionIndex: shuffledOptions.findIndex(o => o.isCorrect)
-              };
-            }
-            if (q.type === 'true_false' && q.options && q.correctAnswers) {
-              const optionsWithAnswers = q.options.map((opt, idx) => ({
-                text: opt,
-                answer: q.correctAnswers![idx]
-              }));
-              const shuffledOptions = shuffleArray(optionsWithAnswers);
-              return {
-                ...q,
-                options: shuffledOptions.map(o => o.text),
-                correctAnswers: shuffledOptions.map(o => o.answer)
-              };
-            }
-            return q;
-          });
+          if (settings.shuffleOptions !== false) {
+            questionList = questionList.map(q => {
+              if (q.type === 'multiple_choice' && q.options) {
+                const optionsWithCorrect = q.options.map((opt, idx) => ({
+                  text: opt,
+                  isCorrect: idx === q.correctOptionIndex
+                }));
+                const shuffledOptions = shuffleArray(optionsWithCorrect);
+                return {
+                  ...q,
+                  options: shuffledOptions.map(o => o.text),
+                  correctOptionIndex: shuffledOptions.findIndex(o => o.isCorrect)
+                };
+              }
+              if (q.type === 'true_false' && q.options && q.correctAnswers) {
+                const optionsWithAnswers = q.options.map((opt, idx) => ({
+                  text: opt,
+                  answer: q.correctAnswers![idx]
+                }));
+                const shuffledOptions = shuffleArray(optionsWithAnswers);
+                return {
+                  ...q,
+                  options: shuffledOptions.map(o => o.text),
+                  correctAnswers: shuffledOptions.map(o => o.answer)
+                };
+              }
+              return q;
+            });
+          }
 
           // Shuffle questions within their parts (MC first, then TF)
-          const mcQuestions = shuffleArray(questionList.filter(q => q.type === 'multiple_choice'));
-          const tfQuestions = shuffleArray(questionList.filter(q => q.type === 'true_false')); 
-          const shuffledQuestions = [...mcQuestions, ...tfQuestions];
+          let finalQuestions = questionList;
+          if (settings.shuffleQuestions !== false) {
+            const mcQuestions = shuffleArray(questionList.filter(q => q.type === 'multiple_choice'));
+            const tfQuestions = shuffleArray(questionList.filter(q => q.type === 'true_false')); 
+            finalQuestions = [...mcQuestions, ...tfQuestions];
+          }
 
-          setQuestions(shuffledQuestions);
-          setAnswers(new Array(shuffledQuestions.length).fill(-1).map((_, i) => 
-            shuffledQuestions[i].type === 'true_false' ? [null, null, null, null] : -1
+          setQuestions(finalQuestions);
+          setAnswers(new Array(finalQuestions.length).fill(-1).map((_, i) => 
+            finalQuestions[i].type === 'true_false' ? [null, null, null, null] : -1
           ));
-          setReviewed(new Array(shuffledQuestions.length).fill(false));
+          setReviewed(new Array(finalQuestions.length).fill(false));
         }
       } catch (error) {
         console.error('Error fetching quiz:', error);

@@ -29,6 +29,8 @@ export interface QuizSecuritySettings {
   maxViolations: number; // 0 means unlimited
   autoSubmitOnMaxViolations: boolean;
   showWarningOnViolation: boolean;
+  shuffleQuestions?: boolean;
+  shuffleOptions?: boolean;
 }
 
 export interface Quiz {

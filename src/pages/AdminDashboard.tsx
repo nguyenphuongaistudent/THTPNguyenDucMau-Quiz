@@ -471,7 +471,15 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       subject: 'Toán',
       topic: 'regular',
       duration: 30,
-      isActive: true
+      isActive: true,
+      securitySettings: {
+        preventTabSwitch: false,
+        maxViolations: 0,
+        autoSubmitOnMaxViolations: false,
+        showWarningOnViolation: true,
+        shuffleQuestions: true,
+        shuffleOptions: true
+      }
     });
     setEditingQuestions([{
       type: 'multiple_choice',
@@ -649,11 +657,13 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         reviewRoles: editingQuiz.reviewRoles || ['student', 'student-vip', 'guest'],
         specialAttemptLimits: editingQuiz.specialAttemptLimits || [],
         order: editingQuiz.order ?? 0,
-        securitySettings: editingQuiz.securitySettings || {
-          preventTabSwitch: false,
-          maxViolations: 0,
-          autoSubmitOnMaxViolations: false,
-          showWarningOnViolation: true
+        securitySettings: {
+          preventTabSwitch: editingQuiz.securitySettings?.preventTabSwitch || false,
+          maxViolations: Number(editingQuiz.securitySettings?.maxViolations || 0),
+          autoSubmitOnMaxViolations: editingQuiz.securitySettings?.autoSubmitOnMaxViolations || false,
+          showWarningOnViolation: editingQuiz.securitySettings?.showWarningOnViolation ?? true,
+          shuffleQuestions: editingQuiz.securitySettings?.shuffleQuestions ?? true,
+          shuffleOptions: editingQuiz.securitySettings?.shuffleOptions ?? true
         },
         updatedAt: serverTimestamp()
       };
@@ -1460,6 +1470,50 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                           <span className={cn(
                             "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
                             editingQuiz?.securitySettings?.showWarningOnViolation ?? true ? "translate-x-6" : "translate-x-1"
+                          )} />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl border border-stone-200">
+                        <div>
+                          <p className="text-sm font-bold text-stone-900">Đảo thứ tự câu hỏi</p>
+                          <p className="text-xs text-stone-500">Xáo trộn vị trí các câu hỏi trong đề thi</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true, shuffleQuestions: true, shuffleOptions: true };
+                            setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, shuffleQuestions: !currentSettings.shuffleQuestions } });
+                          }}
+                          className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                            editingQuiz?.securitySettings?.shuffleQuestions ?? true ? "bg-emerald-600" : "bg-stone-300"
+                          )}
+                        >
+                          <span className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                            editingQuiz?.securitySettings?.shuffleQuestions ?? true ? "translate-x-6" : "translate-x-1"
+                          )} />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl border border-stone-200">
+                        <div>
+                          <p className="text-sm font-bold text-stone-900">Đảo thứ tự phương án</p>
+                          <p className="text-xs text-stone-500">Xáo trộn vị trí các đáp án trong mỗi câu hỏi</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true, shuffleQuestions: true, shuffleOptions: true };
+                            setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, shuffleOptions: !currentSettings.shuffleOptions } });
+                          }}
+                          className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                            editingQuiz?.securitySettings?.shuffleOptions ?? true ? "bg-emerald-600" : "bg-stone-300"
+                          )}
+                        >
+                          <span className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                            editingQuiz?.securitySettings?.shuffleOptions ?? true ? "translate-x-6" : "translate-x-1"
                           )} />
                         </button>
                       </div>
