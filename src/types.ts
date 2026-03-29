@@ -74,4 +74,5 @@ export interface Result {
     val: number | boolean[];
     isCorrect: boolean;
   }[];
+  shuffledQuestions?: Question[];
 }

@@ -27,18 +27,23 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
         if (quizDoc.exists()) {
           setQuiz({ id: quizDoc.id, ...quizDoc.data() } as Quiz);
           
-          const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', result.quizId, 'questions'), orderBy('order')));
-          let questionList = questionsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as Question[];
+          // Use shuffled questions from result if available, otherwise fetch from DB
+          if (result.shuffledQuestions && result.shuffledQuestions.length > 0) {
+            setQuestions(result.shuffledQuestions);
+          } else {
+            const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', result.quizId, 'questions'), orderBy('order')));
+            let questionList = questionsSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            })) as Question[];
 
-          // Filter out hidden questions for non-admins/teachers
-          if (!isAdminOrTeacher) {
-            questionList = questionList.filter(q => !q.hidden);
+            // Filter out hidden questions for non-admins/teachers
+            if (!isAdminOrTeacher) {
+              questionList = questionList.filter(q => !q.hidden);
+            }
+
+            setQuestions(questionList);
           }
-
-          setQuestions(questionList);
         }
       } catch (error) {
         console.error('Error fetching review data:', error);
@@ -48,7 +53,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
     };
 
     fetchQuizData();
-  }, [result.quizId]);
+  }, [result.quizId, result.shuffledQuestions]);
 
   const handlePrint = () => {
     window.print();

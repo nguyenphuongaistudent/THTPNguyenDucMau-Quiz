@@ -106,13 +106,24 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 correctOptionIndex: shuffledOptions.findIndex(o => o.isCorrect)
               };
             }
-            // True/False questions and their sub-statements are NOT shuffled as per user request
+            if (q.type === 'true_false' && q.options && q.correctAnswers) {
+              const optionsWithAnswers = q.options.map((opt, idx) => ({
+                text: opt,
+                answer: q.correctAnswers![idx]
+              }));
+              const shuffledOptions = shuffleArray(optionsWithAnswers);
+              return {
+                ...q,
+                options: shuffledOptions.map(o => o.text),
+                correctAnswers: shuffledOptions.map(o => o.answer)
+              };
+            }
             return q;
           });
 
           // Shuffle questions within their parts (MC first, then TF)
           const mcQuestions = shuffleArray(questionList.filter(q => q.type === 'multiple_choice'));
-          const tfQuestions = questionList.filter(q => q.type === 'true_false'); // Keep original order for Part II
+          const tfQuestions = shuffleArray(questionList.filter(q => q.type === 'true_false')); 
           const shuffledQuestions = [...mcQuestions, ...tfQuestions];
 
           setQuestions(shuffledQuestions);
@@ -221,7 +232,8 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         totalQuestions: questions.length,
         correctAnswers: correctCount,
         completedAt: serverTimestamp(),
-        answers: sanitizedAnswers
+        answers: sanitizedAnswers,
+        shuffledQuestions: questions
       });
 
       onComplete();
