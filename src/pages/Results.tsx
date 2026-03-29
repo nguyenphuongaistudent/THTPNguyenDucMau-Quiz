@@ -8,6 +8,7 @@ import ReviewQuiz from '../components/ReviewQuiz';
 import { deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface ResultsProps {
   user: User;
@@ -21,6 +22,7 @@ export default function Results({ user }: ResultsProps) {
   const [reviewingResult, setReviewingResult] = useState<Result | null>(null);
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ ids: string[]; isOpen: boolean }>({ ids: [], isOpen: false });
 
   // Filters
   const [filterSchool, setFilterSchool] = useState('');
@@ -52,8 +54,10 @@ export default function Results({ user }: ResultsProps) {
   });
 
   const handleDeleteResults = async (ids: string[]) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa ${ids.length} kết quả đã chọn?`)) return;
-    
+    setConfirmDelete({ ids, isOpen: true });
+  };
+
+  const executeDeleteResults = async (ids: string[]) => {
     setDeleting(true);
     try {
       const batch = writeBatch(db);
@@ -71,6 +75,7 @@ export default function Results({ user }: ResultsProps) {
       toast.error('Có lỗi xảy ra khi xóa kết quả.');
     } finally {
       setDeleting(false);
+      setConfirmDelete({ ids: [], isOpen: false });
     }
   };
 
@@ -396,6 +401,18 @@ export default function Results({ user }: ResultsProps) {
           user={user}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmDelete.isOpen}
+        title="Xác nhận xóa?"
+        message={`Bạn có chắc chắn muốn xóa ${confirmDelete.ids.length} kết quả đã chọn? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xóa ngay"
+        cancelLabel="Hủy bỏ"
+        onConfirm={() => executeDeleteResults(confirmDelete.ids)}
+        onCancel={() => setConfirmDelete({ ids: [], isOpen: false })}
+        loading={deleting}
+        variant="danger"
+      />
     </div>
   );
 }

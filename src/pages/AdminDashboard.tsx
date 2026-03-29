@@ -14,6 +14,7 @@ import RichText from '../components/RichText';
 import { ImportedQuiz, downloadFile } from '../lib/importUtils';
 import DOMPurify from 'dompurify';
 import { toast } from 'sonner';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface AdminDashboardProps {
   user: User;
@@ -364,6 +365,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   const [filterSubject, setFilterSubject] = useState<string>('all');
   const [filterTopic, setFilterTopic] = useState<string>('all');
   const [expandedQuestions, setExpandedQuestions] = useState<Record<number, boolean>>({ 0: true });
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; isOpen: boolean }>({ id: '', isOpen: false });
   const [statsQuiz, setStatsQuiz] = useState<Quiz | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
@@ -881,8 +883,10 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   };
 
   const handleDeleteQuiz = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa bài thi này? Tất cả dữ liệu liên quan sẽ bị mất.')) return;
-    
+    setConfirmDelete({ id, isOpen: true });
+  };
+
+  const executeDeleteQuiz = async (id: string) => {
     setSaving(true);
     try {
       // Delete questions first
@@ -900,6 +904,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       toast.error('Có lỗi xảy ra khi xóa bài thi.');
     } finally {
       setSaving(false);
+      setConfirmDelete({ id: '', isOpen: false });
     }
   };
 
@@ -1144,6 +1149,17 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       )}
 
       {/* Modal Editor */}
+      <ConfirmModal
+        isOpen={confirmDelete.isOpen}
+        title="Xác nhận xóa?"
+        message="Bạn có chắc chắn muốn xóa bài thi này? Tất cả dữ liệu liên quan sẽ bị mất và không thể hoàn tác."
+        confirmLabel="Xóa ngay"
+        cancelLabel="Hủy bỏ"
+        onConfirm={() => executeDeleteQuiz(confirmDelete.id)}
+        onCancel={() => setConfirmDelete({ id: '', isOpen: false })}
+        variant="danger"
+      />
+
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
           <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={() => !saving && setIsModalOpen(false)} />

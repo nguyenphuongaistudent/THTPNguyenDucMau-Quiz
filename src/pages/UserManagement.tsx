@@ -8,6 +8,7 @@ import { cn, formatDate } from '../lib/utils';
 import { motion } from 'motion/react';
 import { sendPasswordReset, signUpWithEmail, checkUsernameUnique, checkEmailUnique } from '../firebase';
 import { toast } from 'sonner';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface UserManagementProps {
   currentUser: User;
@@ -52,6 +53,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
   const [importing, setImporting] = useState(false);
   const [regEnabled, setRegEnabled] = useState(true);
   const [updatingReg, setUpdatingReg] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ uid: string | 'selected'; isOpen: boolean }>({ uid: '', isOpen: false });
 
   useEffect(() => {
     const settingsRef = doc(db, 'settings', 'registration');
@@ -442,8 +444,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       toast.error('Chỉ quản trị viên mới có quyền xóa tài khoản.');
       return;
     }
-    if (!window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
-    
+    setConfirmDelete({ uid, isOpen: true });
+  };
+
+  const executeDeleteUser = async (uid: string) => {
     try {
       await deleteDoc(doc(db, 'users', uid));
       setSelectedUsers(prev => {
@@ -456,6 +460,8 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       console.error('Error deleting user:', error);
       handleFirestoreError(error, OperationType.DELETE, 'users');
       toast.error('Có lỗi xảy ra khi xóa người dùng.');
+    } finally {
+      setConfirmDelete({ uid: '', isOpen: false });
     }
   };
 
@@ -465,9 +471,10 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
       return;
     }
     if (selectedUsers.size === 0) return;
-    
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa ${selectedUsers.size} người dùng đã chọn?`)) return;
-    
+    setConfirmDelete({ uid: 'selected', isOpen: true });
+  };
+
+  const executeDeleteSelected = async () => {
     setSaving(true);
     const total = selectedUsers.size;
     let current = 0;
@@ -495,6 +502,7 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
     } finally {
       setSaving(false);
       setDeleteProgress(null);
+      setConfirmDelete({ uid: '', isOpen: false });
     }
   };
 
@@ -1179,6 +1187,21 @@ export default function UserManagement({ currentUser }: UserManagementProps) {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={confirmDelete.isOpen}
+        title="Xác nhận xóa?"
+        message={confirmDelete.uid === 'selected' 
+          ? `Bạn có chắc chắn muốn xóa ${selectedUsers.size} người dùng đã chọn? Hành động này không thể hoàn tác.`
+          : "Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác."
+        }
+        confirmLabel="Xóa ngay"
+        cancelLabel="Hủy bỏ"
+        onConfirm={() => confirmDelete.uid === 'selected' ? executeDeleteSelected() : executeDeleteUser(confirmDelete.uid)}
+        onCancel={() => setConfirmDelete({ uid: '', isOpen: false })}
+        loading={saving}
+        variant="danger"
+      />
+
       {/* Password Reset Modal */}
       {resettingUser && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">

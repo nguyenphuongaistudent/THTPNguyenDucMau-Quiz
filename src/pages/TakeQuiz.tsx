@@ -296,7 +296,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         });
       });
 
-      await addDoc(collection(db, 'results'), {
+      const submissionPromise = addDoc(collection(db, 'results'), {
         quizId,
         quizTitle: quiz?.title || 'Bài thi không tên',
         subject: quiz?.subject || 'Chưa rõ',
@@ -314,12 +314,22 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         violationCount: violationCount
       });
 
-      toast.success('Nộp bài thành công!');
-      onComplete();
+      toast.promise(submissionPromise, {
+        loading: 'Đang nộp bài thi...',
+        success: () => {
+          onComplete();
+          return 'Nộp bài thành công!';
+        },
+        error: (err) => {
+          console.error('Error submitting quiz:', err);
+          handleFirestoreError(err, OperationType.WRITE, 'results');
+          return 'Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.';
+        }
+      });
+
+      await submissionPromise;
     } catch (error) {
-      console.error('Error submitting quiz:', error);
-      toast.error('Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.');
-      handleFirestoreError(error, OperationType.WRITE, 'results');
+      // Errors are handled by toast.promise
     } finally {
       setSubmitting(false);
     }
