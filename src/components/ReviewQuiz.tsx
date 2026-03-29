@@ -29,20 +29,23 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
           
           // Use shuffled questions from result if available, otherwise fetch from DB
           if (result.shuffledQuestions && result.shuffledQuestions.length > 0) {
-            setQuestions(result.shuffledQuestions);
+            setQuestions(result.shuffledQuestions.filter(q => q !== undefined && q !== null));
           } else {
-            const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', result.quizId, 'questions'), orderBy('order')));
+            const questionsSnapshot = await getDocs(collection(db, 'quizzes', result.quizId, 'questions'));
             let questionList = questionsSnapshot.docs.map(doc => ({
               id: doc.id,
               ...doc.data()
             })) as Question[];
 
+            // Sort in memory
+            questionList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
             // Filter out hidden questions for non-admins/teachers
             if (!isAdminOrTeacher) {
-              questionList = questionList.filter(q => !q.hidden);
+              questionList = questionList.filter(q => q && !q.hidden);
             }
 
-            setQuestions(questionList);
+            setQuestions(questionList.filter(q => q !== undefined && q !== null));
           }
         }
       } catch (error) {
@@ -84,7 +87,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
               {result.score}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-stone-900 leading-tight">{result.quizTitle}</h2>
+              <h2 className="text-base font-bold text-stone-900 leading-tight">{result.quizTitle}</h2>
               <p className="text-xs text-stone-500 font-medium uppercase tracking-wider">
                 Thí sinh: {result.studentName} • {formatDate(result.completedAt)}
                 {result.violationCount !== undefined && result.violationCount > 0 && (
@@ -118,7 +121,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
           <div className="hidden print:block mb-8 border-b-2 border-stone-900 pb-4">
             <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-2xl font-bold uppercase">{result.quizTitle}</h1>
+                <h1 className="text-xl font-bold uppercase">{result.quizTitle}</h1>
                 <p className="text-sm font-medium">Môn: {result.subject} | Thời gian: {quiz?.duration} phút</p>
                 <p className="text-sm font-medium">Thí sinh: {result.studentName} | Lớp: {result.studentClass || 'N/A'}</p>
                 <p className="text-sm font-medium">Trường: {result.studentSchool || 'N/A'}</p>
@@ -134,6 +137,7 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
           {/* Questions List */}
           <div className="space-y-12 max-w-4xl mx-auto">
             {questions.map((q, idx) => {
+              if (!q) return null;
               const userAnswer = result.answers[idx]?.val;
               const isCorrect = q.type === 'multiple_choice' 
                 ? userAnswer === q.correctOptionIndex
