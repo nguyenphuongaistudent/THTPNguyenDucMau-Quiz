@@ -314,12 +314,12 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         violationCount: violationCount
       });
 
-      onComplete();
       toast.success('Nộp bài thành công!');
+      onComplete();
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      handleFirestoreError(error, OperationType.WRITE, 'results');
       toast.error('Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.');
+      handleFirestoreError(error, OperationType.WRITE, 'results');
     } finally {
       setSubmitting(false);
     }

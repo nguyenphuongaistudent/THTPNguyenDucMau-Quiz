@@ -40,13 +40,20 @@ service cloud.firestore {
     // Document ID: {resultId}
     // Fields:
     //   - quizId: string (required) - ID bài thi
+    //   - quizTitle: string (required) - Tiêu đề bài thi
+    //   - subject: string (required) - Môn học
+    //   - topic: string (required) - Chủ đề
     //   - studentUid: string (required) - UID học sinh
     //   - studentName: string (required) - Tên học sinh
+    //   - studentSchool: string (optional) - Trường học
+    //   - studentClass: string (optional) - Lớp học
     //   - score: number (required) - Điểm số
     //   - totalQuestions: number (required) - Tổng số câu
     //   - correctAnswers: number (required) - Số câu đúng
     //   - completedAt: timestamp (required) - Thời gian nộp
     //   - answers: list (required) - Các đáp án đã chọn
+    //   - shuffledQuestions: list (optional) - Danh sách câu hỏi đã xáo trộn
+    //   - violationCount: number (optional) - Số lần vi phạm
     //
     // ===============================================================
 
@@ -134,7 +141,7 @@ service cloud.firestore {
     }
 
     function isValidResult(data) {
-      return hasOnlyAllowedFields(['quizId', 'quizTitle', 'subject', 'topic', 'studentUid', 'studentName', 'studentSchool', 'studentClass', 'score', 'totalQuestions', 'correctAnswers', 'completedAt', 'answers']) &&
+      return hasOnlyAllowedFields(['quizId', 'quizTitle', 'subject', 'topic', 'studentUid', 'studentName', 'studentSchool', 'studentClass', 'score', 'totalQuestions', 'correctAnswers', 'completedAt', 'answers', 'shuffledQuestions', 'violationCount']) &&
              (!('quizId' in data) || data.quizId is string) &&
              (!('quizTitle' in data) || data.quizTitle is string) &&
              (!('subject' in data) || data.subject is string) &&
@@ -147,7 +154,9 @@ service cloud.firestore {
              (!('totalQuestions' in data) || data.totalQuestions is number) &&
              (!('correctAnswers' in data) || data.correctAnswers is number) &&
              (!('completedAt' in data) || data.completedAt is timestamp) &&
-             (!('answers' in data) || data.answers is list);
+             (!('answers' in data) || data.answers is list) &&
+             (!('shuffledQuestions' in data) || data.shuffledQuestions is list) &&
+             (!('violationCount' in data) || data.violationCount is number);
     }
 
     // ===============================================================

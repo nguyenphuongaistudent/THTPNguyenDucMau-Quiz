@@ -84,8 +84,13 @@
       "type": "object",
       "properties": {
         "quizId": { "type": "string", "description": "ID của bài thi" },
+        "quizTitle": { "type": "string", "description": "Tiêu đề bài thi" },
+        "subject": { "type": "string", "description": "Môn học" },
+        "topic": { "type": "string", "enum": ["regular", "periodic", "graduation"], "description": "Chủ đề bài thi" },
         "studentUid": { "type": "string", "description": "UID của học sinh" },
         "studentName": { "type": "string", "description": "Tên học sinh" },
+        "studentSchool": { "type": "string", "description": "Trường học" },
+        "studentClass": { "type": "string", "description": "Lớp học" },
         "score": { "type": "number", "description": "Điểm số đạt được" },
         "totalQuestions": { "type": "integer", "description": "Tổng số câu hỏi" },
         "correctAnswers": { "type": "integer", "description": "Số câu trả lời đúng" },
@@ -101,7 +106,9 @@
             }
           },
           "description": "Danh sách các đáp án chi tiết học sinh đã chọn"
-        }
+        },
+        "shuffledQuestions": { "type": "array", "description": "Danh sách câu hỏi đã xáo trộn" },
+        "violationCount": { "type": "integer", "description": "Số lần vi phạm" }
       },
       "required": ["quizId", "studentUid", "score", "completedAt"]
     }
