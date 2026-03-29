@@ -4,8 +4,9 @@ import { collection, getDocs, addDoc, serverTimestamp, query, where, orderBy } f
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, Question, User, Result } from '../types';
 import { Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Loader2, Send, X } from 'lucide-react';
-import { cn, formatDuration } from '../lib/utils';
+import { formatDuration, cn } from '../lib/utils';
 import RichText from '../components/RichText';
+import { toast } from 'sonner';
 
 interface TakeQuizProps {
   quizId: string;
@@ -23,6 +24,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   const [reviewed, setReviewed] = useState<boolean[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   const [attemptError, setAttemptError] = useState<string | null>(null);
   const [violationCount, setViolationCount] = useState(0);
@@ -235,9 +237,16 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
     return tempDiv.innerHTML;
   };
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(async (isAutoSubmit = false) => {
     if (submitting) return;
+    
+    if (!isAutoSubmit && !showSubmitConfirm) {
+      setShowSubmitConfirm(true);
+      return;
+    }
+
     setSubmitting(true);
+    setShowSubmitConfirm(false);
 
     try {
       let totalScore = 0;
@@ -306,18 +315,19 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
       });
 
       onComplete();
+      toast.success('Nộp bài thành công!');
     } catch (error) {
       console.error('Error submitting quiz:', error);
       handleFirestoreError(error, OperationType.WRITE, 'results');
-      alert('Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.');
+      toast.error('Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, questions, answers, quiz, user, quizId, onComplete]);
+  }, [submitting, questions, answers, quiz, user, quizId, onComplete, violationCount]);
 
   useEffect(() => {
     if (!isStarted || timeLeft <= 0) {
-      if (isStarted && timeLeft <= 0) handleSubmit();
+      if (isStarted && timeLeft <= 0) handleSubmit(true);
       return;
     }
 
@@ -569,7 +579,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
 
               {currentQuestionIndex === questions.length - 1 ? (
                 <button
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit()}
                   disabled={submitting}
                   translate="no"
                   className="flex items-center gap-2 bg-emerald-600 text-white py-2 px-6 rounded-xl hover:bg-emerald-700 transition-all font-medium shadow-lg shadow-emerald-200 disabled:opacity-50 text-sm"
@@ -683,11 +693,13 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
             {/* Submit Button Section */}
             <div className="p-6 pt-0 flex flex-col items-center">
               <button
-                onClick={handleSubmit}
+                onClick={() => handleSubmit()}
                 disabled={submitting}
-                className="w-full bg-[#f39c12] hover:bg-[#e67e22] text-white py-2.5 px-6 rounded-full font-bold text-base shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 mb-6 uppercase tracking-wider"
+                translate="no"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-6 rounded-xl font-bold text-base shadow-lg shadow-emerald-200 transition-all active:scale-[0.98] disabled:opacity-50 mb-6 uppercase tracking-wider flex items-center justify-center gap-2"
               >
-                {submitting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : "Nộp bài"}
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-4 h-4" />}
+                <span>Nộp bài</span>
               </button>
 
               {/* Legend */}
@@ -731,6 +743,35 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               >
                 Tôi đã hiểu và tiếp tục làm bài
               </button>
+            </div>
+          </div>
+        )}
+
+        {showSubmitConfirm && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-emerald-100 animate-in fade-in zoom-in duration-300">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Send className="w-8 h-8 text-emerald-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-stone-900 text-center mb-2">Xác nhận nộp bài?</h3>
+              <p className="text-stone-600 text-center mb-8 leading-relaxed">
+                Bạn có chắc chắn muốn nộp bài thi ngay bây giờ? Sau khi nộp, bạn sẽ không thể thay đổi câu trả lời.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => setShowSubmitConfirm(false)}
+                  className="py-3 rounded-xl font-bold text-stone-500 hover:bg-stone-100 transition-all"
+                >
+                  Kiểm tra lại
+                </button>
+                <button
+                  onClick={() => handleSubmit(false)}
+                  className="bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200"
+                >
+                  Xác nhận nộp
+                </button>
+              </div>
             </div>
           </div>
         )}
