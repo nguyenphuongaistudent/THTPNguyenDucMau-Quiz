@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import DOMPurify from 'dompurify';
 import { collection, getDocs, addDoc, serverTimestamp, query, where, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
@@ -29,21 +29,30 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   const [attemptError, setAttemptError] = useState<string | null>(null);
   const [violationCount, setViolationCount] = useState(0);
   const [showViolationWarning, setShowViolationWarning] = useState(false);
+  const lastViolationTime = useRef<number>(0);
 
   useEffect(() => {
     if (!isStarted || submitting) return;
 
+    const recordViolation = (reason: string) => {
+      const now = Date.now();
+      // Prevent double counting if events fire within 500ms
+      if (now - lastViolationTime.current < 500) return;
+      
+      lastViolationTime.current = now;
+      setViolationCount(prev => prev + 1);
+      setShowViolationWarning(true);
+    };
+
     // 1. Prevent Tab Switching / Leaving the window
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        setViolationCount(prev => prev + 1);
-        setShowViolationWarning(true);
+        recordViolation('Bạn đã rời khỏi trang làm bài');
       }
     };
 
     const handleBlur = () => {
-      setViolationCount(prev => prev + 1);
-      setShowViolationWarning(true);
+      recordViolation('Bạn đã chuyển sang ứng dụng khác hoặc thu nhỏ trình duyệt');
     };
 
     // 2. Prevent Copy/Cut/Paste/ContextMenu
@@ -68,7 +77,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
       // Block PrintScreen (Note: Hard to block completely, but we can try)
       if (e.key === 'PrintScreen') {
         e.preventDefault();
-        toast.error('Chụp màn hình bị cấm trong lúc làm bài thi!');
+        recordViolation('Hành vi chụp màn hình bị cấm');
         return false;
       }
     };

@@ -87,6 +87,9 @@ export default function ReviewQuiz({ result, onClose, user }: ReviewQuizProps) {
               <h2 className="text-lg font-bold text-stone-900 leading-tight">{result.quizTitle}</h2>
               <p className="text-xs text-stone-500 font-medium uppercase tracking-wider">
                 Thí sinh: {result.studentName} • {formatDate(result.completedAt)}
+                {result.violationCount !== undefined && result.violationCount > 0 && (
+                  <span className="ml-2 text-red-600 font-bold">• {result.violationCount} lần vi phạm</span>
+                )}
               </p>
             </div>
           </div>

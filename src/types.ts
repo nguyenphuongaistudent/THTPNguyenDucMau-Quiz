@@ -75,4 +75,5 @@ export interface Result {
     isCorrect: boolean;
   }[];
   shuffledQuestions?: Question[];
+  violationCount?: number;
 }

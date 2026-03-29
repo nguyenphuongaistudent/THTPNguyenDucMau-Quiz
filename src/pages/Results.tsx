@@ -340,6 +340,12 @@ export default function Results({ user }: ResultsProps) {
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     {result.correctAnswers} / {result.totalQuestions} câu đúng
                   </span>
+                  {result.violationCount !== undefined && result.violationCount > 0 && (
+                    <span className="flex items-center gap-1.5 text-red-600 font-bold">
+                      <AlertCircle className="w-4 h-4" />
+                      {result.violationCount} lần vi phạm
+                    </span>
+                  )}
                   {(user.role === 'admin' || user.role === 'teacher') && (
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                       <span className="flex items-center gap-1.5 font-medium text-stone-700">
