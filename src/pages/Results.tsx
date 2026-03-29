@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Result, User } from '../types';
-import { Trophy, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, ChevronRight, BookOpen, User as UserIcon, School, Eye, Trash2, Search, Filter } from 'lucide-react';
+import { Trophy, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, ChevronRight, BookOpen, User as UserIcon, School, Eye, Trash2, Search, Filter, Download } from 'lucide-react';
 import { formatDate, cn } from '../lib/utils';
 import ReviewQuiz from '../components/ReviewQuiz';
 import { deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import ConfirmModal from '../components/ConfirmModal';
+import * as XLSX from 'xlsx';
 
 interface ResultsProps {
   user: User;
@@ -99,6 +100,35 @@ export default function Results({ user }: ResultsProps) {
     );
   };
 
+  const handleExportResults = () => {
+    if (filteredResults.length === 0) {
+      toast.error('Không có dữ liệu để xuất.');
+      return;
+    }
+
+    try {
+      const exportData = filteredResults.map((r) => ({
+        'Bài thi': r.quizTitle,
+        'Họ và tên': r.studentName,
+        'Trường': r.studentSchool || '',
+        'Lớp': r.studentClass || '',
+        'Điểm số': r.score.toFixed(2),
+        'Số câu đúng': `${r.correctAnswers}/${r.totalQuestions}`,
+        'Số lần vi phạm': r.violationCount || 0,
+        'Thời gian hoàn thành': formatDate(r.completedAt)
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Kết quả");
+      XLSX.writeFile(wb, `Ket_qua_thi_${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast.success('Đã xuất kết quả thành công!');
+    } catch (error) {
+      console.error('Error exporting results:', error);
+      toast.error('Có lỗi xảy ra khi xuất kết quả.');
+    }
+  };
+
   useEffect(() => {
     const q = (user.role === 'admin' || user.role === 'teacher')
       ? query(collection(db, 'results'), orderBy('completedAt', 'desc'))
@@ -158,17 +188,28 @@ export default function Results({ user }: ResultsProps) {
           <p className="text-stone-500">Xem lại các bài thi đã thực hiện và điểm số của bạn.</p>
         </div>
         
-        <div className="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-          <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <Trophy className="w-6 h-6 text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Trung bình</p>
-            <p className="text-2xl font-sans font-bold text-blue-950">
-              {filteredResults.length > 0 
-                ? (filteredResults.reduce((acc, r) => acc + r.score, 0) / filteredResults.length).toFixed(1)
-                : '0.0'}
-            </p>
+        <div className="flex items-center gap-4">
+          {(user.role === 'admin' || user.role === 'teacher') && (
+            <button
+              onClick={handleExportResults}
+              className="flex items-center gap-2 bg-white border border-stone-200 hover:bg-stone-50 text-stone-600 px-4 py-3 rounded-2xl font-bold text-sm transition-all shadow-sm"
+            >
+              <Download className="w-4 h-4" />
+              Xuất Excel
+            </button>
+          )}
+          <div className="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+            <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+              <Trophy className="w-6 h-6 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Trung bình</p>
+              <p className="text-2xl font-sans font-bold text-blue-950">
+                {filteredResults.length > 0 
+                  ? (filteredResults.reduce((acc, r) => acc + r.score, 0) / filteredResults.length).toFixed(1)
+                  : '0.0'}
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -580,6 +580,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         'Lớp': usersData[r.studentUid]?.class || '',
         'Điểm số': r.score.toFixed(2),
         'Số câu đúng': `${r.correctAnswers}/${r.totalQuestions}`,
+        'Số lần vi phạm': r.violationCount || 0,
         'Thời gian hoàn thành': r.completedAt?.toDate().toLocaleString('vi-VN') || ''
       }));
 
