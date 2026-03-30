@@ -166,107 +166,66 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
           setQuiz(quizData);
           setTimeLeft(foundQuiz.data().duration * 60);
           
-          const questionsSnapshot = await getDocs(collection(db, 'quizzes', quizId, 'questions'));
+          const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', quizId, 'questions'), orderBy('order')));
           let questionList = questionsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
           })) as Question[];
-
-          // Sort in memory to handle cases where 'order' might be missing
-          questionList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
           // Filter out hidden questions for non-admins
           if (user.role !== 'admin') {
             questionList = questionList.filter(q => !q.hidden);
           }
 
-          // Seeded random number generator
-          const seededRandom = (seed: string) => {
-            let h = 0;
-            for (let i = 0; i < seed.length; i++) {
-              h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
-            }
-            return () => {
-              h = Math.imul(48271, h) | 0;
-              return (h >>> 0) / 2147483647;
-            };
-          };
-
-          const rng = seededRandom(user.uid + quizId + attemptCount);
-
-          // Helper to shuffle array with seeded RNG
+          // Helper to shuffle array
           const shuffleArray = <T,>(array: T[]): T[] => {
-            if (!array || !Array.isArray(array)) return [];
-            // Filter out any undefined/null elements that might have crept in
-            const cleanArr = array.filter(item => item !== undefined && item !== null);
-            const newArr = [...cleanArr];
+            const newArr = [...array];
             for (let i = newArr.length - 1; i > 0; i--) {
-              const j = Math.floor(rng() * (i + 1));
+              const j = Math.floor(Math.random() * (i + 1));
               [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
             }
             return newArr;
           };
 
-          const settings = quizData.securitySettings || {
-            preventTabSwitch: false,
-            maxViolations: 0,
-            autoSubmitOnMaxViolations: false,
-            showWarningOnViolation: true,
-            shuffleQuestions: true,
-            shuffleOptions: true
-          };
-
           // Shuffle options within each question
-          if (settings.shuffleOptions !== false) {
-            questionList = questionList.map(q => {
-              if (!q) return q;
-              if (q.type === 'multiple_choice' && Array.isArray(q.options)) {
-                const optionsWithCorrect = q.options
-                  .filter(opt => opt !== undefined && opt !== null)
-                  .map((opt, idx) => ({
-                    text: opt,
-                    isCorrect: idx === q.correctOptionIndex
-                  }));
-                const shuffledOptions = shuffleArray(optionsWithCorrect);
-                return {
-                  ...q,
-                  options: shuffledOptions.map(o => o.text),
-                  correctOptionIndex: shuffledOptions.findIndex(o => o.isCorrect)
-                };
-              }
-              if (q.type === 'true_false' && Array.isArray(q.options) && Array.isArray(q.correctAnswers)) {
-                const optionsWithAnswers = q.options
-                  .filter(opt => opt !== undefined && opt !== null)
-                  .map((opt, idx) => ({
-                    text: opt,
-                    answer: q.correctAnswers![idx]
-                  }));
-                const shuffledOptions = shuffleArray(optionsWithAnswers);
-                return {
-                  ...q,
-                  options: shuffledOptions.map(o => o.text),
-                  correctAnswers: shuffledOptions.map(o => o.answer)
-                };
-              }
-              return q;
-            }).filter(q => q !== undefined && q !== null);
-          }
+          questionList = questionList.map(q => {
+            if (q.type === 'multiple_choice' && q.options) {
+              const optionsWithCorrect = q.options.map((opt, idx) => ({
+                text: opt,
+                isCorrect: idx === q.correctOptionIndex
+              }));
+              const shuffledOptions = shuffleArray(optionsWithCorrect);
+              return {
+                ...q,
+                options: shuffledOptions.map(o => o.text),
+                correctOptionIndex: shuffledOptions.findIndex(o => o.isCorrect)
+              };
+            }
+            if (q.type === 'true_false' && q.options && q.correctAnswers) {
+              const optionsWithAnswers = q.options.map((opt, idx) => ({
+                text: opt,
+                answer: q.correctAnswers![idx]
+              }));
+              const shuffledOptions = shuffleArray(optionsWithAnswers);
+              return {
+                ...q,
+                options: shuffledOptions.map(o => o.text),
+                correctAnswers: shuffledOptions.map(o => o.answer)
+              };
+            }
+            return q;
+          });
 
           // Shuffle questions within their parts (MC first, then TF)
-          let finalQuestions = questionList.filter(q => q !== undefined && q !== null);
-          if (settings.shuffleQuestions !== false) {
-            const mcQuestions = shuffleArray(finalQuestions.filter(q => q && q.type === 'multiple_choice'));
-            const tfQuestions = shuffleArray(finalQuestions.filter(q => q && q.type === 'true_false')); 
-            finalQuestions = [...mcQuestions, ...tfQuestions];
-          }
+          const mcQuestions = shuffleArray(questionList.filter(q => q.type === 'multiple_choice'));
+          const tfQuestions = shuffleArray(questionList.filter(q => q.type === 'true_false')); 
+          const shuffledQuestions = [...mcQuestions, ...tfQuestions];
 
-          setQuestions(finalQuestions);
-          setAnswers(new Array(finalQuestions.length).fill(-1).map((_, i) => {
-            const q = finalQuestions[i];
-            if (!q) return -1;
-            return q.type === 'true_false' ? [null, null, null, null] : -1;
-          }));
-          setReviewed(new Array(finalQuestions.length).fill(false));
+          setQuestions(shuffledQuestions);
+          setAnswers(new Array(shuffledQuestions.length).fill(-1).map((_, i) => 
+            shuffledQuestions[i].type === 'true_false' ? [null, null, null, null] : -1
+          ));
+          setReviewed(new Array(shuffledQuestions.length).fill(false));
         }
       } catch (error) {
         console.error('Error fetching quiz:', error);
@@ -478,26 +437,6 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
 
   if (!quiz) return <div className="text-center py-20 text-stone-500">Không tìm thấy bài thi.</div>;
 
-  if (questions.length === 0 && loading === false) {
-    return (
-      <div className="max-w-2xl mx-auto py-12 px-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="bg-white rounded-3xl border border-stone-200 p-10 text-center shadow-xl shadow-stone-200/50">
-          <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto mb-8">
-            <AlertCircle className="w-10 h-10 text-amber-500" />
-          </div>
-          <h2 className="text-2xl font-sans font-bold text-stone-900 mb-4">Bài thi chưa có câu hỏi</h2>
-          <p className="text-stone-500 mb-8 leading-relaxed">Vui lòng quay lại sau hoặc liên hệ quản trị viên để biết thêm chi tiết.</p>
-          <button
-            onClick={onCancel}
-            className="w-full sm:w-auto bg-stone-900 text-white py-4 px-12 rounded-2xl hover:bg-stone-800 transition-all font-medium shadow-lg shadow-stone-200"
-          >
-            Quay lại trang chủ
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (!isStarted) {
     return (
       <div className="max-w-2xl mx-auto py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -505,7 +444,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
           <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center mx-auto mb-8">
             <Clock className="w-10 h-10 text-emerald-600" />
           </div>
-          <h1 className="text-xl font-sans font-bold text-blue-950 mb-4">{quiz.title}</h1>
+          <h1 className="text-2xl font-sans font-bold text-blue-950 mb-4">{quiz.title}</h1>
           <p className="text-stone-500 mb-8 leading-relaxed">
             {quiz.description || "Bài thi này kiểm tra kiến thức tổng quát của bạn."}
           </p>
@@ -541,33 +480,12 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   }
 
   const currentQuestion = questions[currentQuestionIndex];
-  
-  if (!currentQuestion) {
-    return (
-      <div className="max-w-2xl mx-auto py-12 text-center">
-        <div className="bg-white rounded-3xl border border-stone-200 p-10 shadow-sm">
-          <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-stone-900 mb-2">Lỗi hiển thị câu hỏi</h2>
-          <p className="text-stone-500 mb-6">Không thể tải nội dung câu hỏi hiện tại.</p>
-          <button
-            onClick={onCancel}
-            className="px-8 py-3 bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-all font-medium"
-          >
-            Quay lại
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
   const answeredCount = answers.filter((a, i) => {
-    const q = questions[i];
-    if (!q) return false;
-    if (q.type === 'multiple_choice') {
+    if (questions[i].type === 'multiple_choice') {
       return a !== -1;
     } else {
       return (a as (boolean | null)[]).some(val => val !== null);
@@ -591,7 +509,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
                 {currentQuestionIndex + 1}
               </div>
               <div>
-                <h2 className="text-xs font-medium text-stone-900">{quiz.title}</h2>
+                <h2 className="text-sm font-medium text-stone-900">{quiz.title}</h2>
                 <div className="w-48 h-1.5 bg-stone-100 rounded-full mt-1 overflow-hidden">
                   <div 
                     className="h-full bg-emerald-500 transition-all duration-300" 
