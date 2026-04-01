@@ -152,9 +152,20 @@ service cloud.firestore {
              data.totalQuestions is number && data.totalQuestions >= 0 &&
              data.correctAnswers is number && data.correctAnswers >= 0 &&
              data.completedAt is timestamp &&
-             (!('answers' in data) || (data.answers is list && data.answers.size() <= 500)) &&
+             (!('answers' in data) || (data.answers is string || data.answers is list)) &&
              (!('shuffledQuestions' in data) || (data.shuffledQuestions is list && data.shuffledQuestions.size() <= 500)) &&
              (!('violationCount' in data) || (data.violationCount is number && data.violationCount >= 0));
+    }
+
+    function isValidAttempt(data) {
+      return hasOnlyAllowedFields(['quizId', 'studentUid', 'shuffledQuestions', 'answers', 'startTime', 'lastUpdated', 'violationCount']) &&
+             data.quizId is string && data.quizId.size() <= 128 &&
+             data.studentUid is string && data.studentUid.size() <= 128 &&
+             data.shuffledQuestions is list && data.shuffledQuestions.size() <= 500 &&
+             (data.answers is string || data.answers is list) &&
+             data.startTime is timestamp &&
+             data.lastUpdated is timestamp &&
+             data.violationCount is number && data.violationCount >= 0;
     }
 
     // ===============================================================
@@ -169,7 +180,7 @@ service cloud.firestore {
       allow create: if isAuthenticated() && (
         isAdmin() || 
         (isOwner(userId) && isValidUser(request.resource.data) && 
-         (request.resource.data.role != 'admin' || request.auth.token.email == "nguyenphuongaistudent@gmail.com")
+          (request.resource.data.role != 'admin' || request.auth.token.email == "nguyenphuongaistudent@gmail.com")
         )
       );
       
@@ -177,7 +188,7 @@ service cloud.firestore {
         (isAdmin() || 
          (isOwner(userId) && isValidUser(request.resource.data) && 
           (request.resource.data.role == resource.data.role || request.auth.token.email == "nguyenphuongaistudent@gmail.com") &&
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email', 'updatedAt', 'lastLoginAt', 'displayName', 'school', 'class', 'password']) || isAdmin())
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email', 'updatedAt', 'lastLoginAt', 'displayName', 'school', 'class', 'password', 'isApproved']) || isAdmin())
          ) ||
          (isTeacher() && isValidUser(request.resource.data) && resource.data.role != 'admin')
         );
@@ -204,9 +215,16 @@ service cloud.firestore {
     match /results/{resultId} {
       // Học sinh chỉ xem được kết quả của mình, Admin/Teacher xem tất cả
       // Leaderboard cần list kết quả nhưng nên được giới hạn
-      allow read: if isAuthenticated() && (isAdmin() || isTeacher() || resource.data.studentUid == request.auth.uid || (request.query.limit <= 100));
+      allow read: if isAuthenticated() && (isAdmin() || isTeacher() || resource.data.studentUid == request.auth.uid || (request.query.limit <= 200));
       allow create: if isAuthenticated() && request.resource.data.studentUid == request.auth.uid && isValidResult(request.resource.data);
       allow delete: if isAdmin() || isTeacher();
+    }
+
+    match /attempts/{attemptId} {
+      allow read: if isAuthenticated() && (isAdmin() || isTeacher() || resource.data.studentUid == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.studentUid == request.auth.uid && isValidAttempt(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.studentUid == request.auth.uid && isValidAttempt(request.resource.data);
+      allow delete: if isAuthenticated() && (isAdmin() || isTeacher() || resource.data.studentUid == request.auth.uid);
     }
 
     match /settings/{settingId} {

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, updateProfile, verifyBeforeUpdateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, collection, query, where, onSnapshot, addDoc, getDocs, deleteDoc, serverTimestamp, Timestamp, updateDoc, deleteField } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, onSnapshot, addDoc, getDocs, deleteDoc, serverTimestamp, Timestamp, updateDoc, deleteField, limit } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import { UserRole } from './types';
 
@@ -79,7 +79,7 @@ export const signInWithGoogle = async () => {
     
     if (!userDoc.exists()) {
       // Check if there's a pre-assigned role for this email
-      const q = query(collection(db, 'users'), where('email', '==', user.email));
+      const q = query(collection(db, 'users'), where('email', '==', user.email), limit(1));
       const querySnapshot = await getDocs(q);
       
       let preAssignedRole: UserRole = isAdminEmail ? 'admin' : 'student';
@@ -170,7 +170,7 @@ export const signUpWithEmail = async (email: string, pass: string, name: string,
     const isAdminEmail = user.email === 'nguyenphuongaistudent@gmail.com';
     
     // Check if there's a pre-assigned role for this email
-    const q = query(collection(db, 'users'), where('email', '==', user.email));
+    const q = query(collection(db, 'users'), where('email', '==', user.email), limit(1));
     const querySnapshot = await getDocs(q);
     
     let preAssignedRole: UserRole = role || (isAdminEmail ? 'admin' : 'student');
@@ -226,8 +226,8 @@ export const signInWithUsernameOrEmail = async (loginId: string, pass: string) =
     
     // Try exact match first
     let q = trimmedLoginId.includes('@') 
-      ? query(usersRef, where('email', '==', trimmedLoginId))
-      : query(usersRef, where('username', '==', trimmedLoginId));
+      ? query(usersRef, where('email', '==', trimmedLoginId), limit(1))
+      : query(usersRef, where('username', '==', trimmedLoginId), limit(1));
     
     let querySnapshot = await getDocs(q);
     
@@ -235,9 +235,9 @@ export const signInWithUsernameOrEmail = async (loginId: string, pass: string) =
     if (querySnapshot.empty) {
       const lowerLoginId = trimmedLoginId.toLowerCase();
       if (trimmedLoginId.includes('@')) {
-        q = query(usersRef, where('email', '==', lowerLoginId));
+        q = query(usersRef, where('email', '==', lowerLoginId), limit(1));
       } else {
-        q = query(usersRef, where('username', '==', lowerLoginId));
+        q = query(usersRef, where('username', '==', lowerLoginId), limit(1));
       }
       querySnapshot = await getDocs(q);
     }
@@ -328,13 +328,13 @@ export const signInWithUsernameOrEmail = async (loginId: string, pass: string) =
 };
 
 export const checkUsernameUnique = async (username: string) => {
-  const q = query(collection(db, 'users'), where('username', '==', username.trim()));
+  const q = query(collection(db, 'users'), where('username', '==', username.trim()), limit(1));
   const querySnapshot = await getDocs(q);
   return querySnapshot.empty;
 };
 
 export const checkEmailUnique = async (email: string) => {
-  const q = query(collection(db, 'users'), where('email', '==', email.trim().toLowerCase()));
+  const q = query(collection(db, 'users'), where('email', '==', email.trim().toLowerCase()), limit(1));
   const querySnapshot = await getDocs(q);
   return querySnapshot.empty;
 };

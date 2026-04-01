@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, serverTimestamp, onSnapshot, limit } from 'firebase/firestore';
 import { auth, db, signInWithGoogle, logout, signUpWithEmail, sendPasswordReset, sendVerification, signInWithUsernameOrEmail } from './firebase';
 import { User as AppUser } from './types';
 import { LogIn, LogOut, BookOpen, Loader2, AlertCircle, Clock, Mail, Lock, User as UserIcon, ArrowLeft, Settings } from 'lucide-react';
@@ -68,7 +68,7 @@ export default function App() {
         if (!userDoc.exists() && firebaseUser.email) {
           // Check if there's an imported user with this email
           const usersRef = collection(db, 'users');
-          const q = query(usersRef, where('email', '==', firebaseUser.email));
+          const q = query(usersRef, where('email', '==', firebaseUser.email), limit(1));
           const querySnapshot = await getDocs(q);
           if (!querySnapshot.empty) {
             const importedDoc = querySnapshot.docs[0];

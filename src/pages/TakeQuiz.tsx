@@ -262,39 +262,49 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               return newArr;
             };
 
-            // Shuffle options
-            questionList = questionList.map(q => {
-              if (q.type === 'multiple_choice' && q.options) {
-                const optionsWithCorrect = q.options.map((opt, idx) => ({
-                  text: opt,
-                  isCorrect: idx === q.correctOptionIndex
-                }));
-                const shuffledOptions = shuffleArray(optionsWithCorrect);
-                return {
-                  ...q,
-                  options: shuffledOptions.map(o => o.text),
-                  correctOptionIndex: shuffledOptions.findIndex(o => o.isCorrect)
-                };
-              }
-              if (q.type === 'true_false' && q.options && q.correctAnswers) {
-                const optionsWithAnswers = q.options.map((opt, idx) => ({
-                  text: opt,
-                  answer: q.correctAnswers![idx]
-                }));
-                const finalShuffled = shuffleArray(optionsWithAnswers);
-                return {
-                  ...q,
-                  options: finalShuffled.map(o => o.text),
-                  correctAnswers: finalShuffled.map(o => o.answer)
-                };
-              }
-              return q;
-            });
+            const shuffleQuestions = quizData.securitySettings?.shuffleQuestions ?? true;
+            const shuffleOptions = quizData.securitySettings?.shuffleOptions ?? true;
 
-            // Shuffle questions by type (Parts)
-            const mcQuestions = shuffleArray(questionList.filter(q => q.type === 'multiple_choice'));
-            const tfQuestions = shuffleArray(questionList.filter(q => q.type === 'true_false')); 
-            const shuffledQuestions = [...mcQuestions, ...tfQuestions];
+            // Shuffle options if enabled
+            if (shuffleOptions) {
+              questionList = questionList.map(q => {
+                if (q.type === 'multiple_choice' && q.options) {
+                  const optionsWithCorrect = q.options.map((opt, idx) => ({
+                    text: opt,
+                    isCorrect: idx === q.correctOptionIndex
+                  }));
+                  const shuffledOptions = shuffleArray(optionsWithCorrect);
+                  return {
+                    ...q,
+                    options: shuffledOptions.map(o => o.text),
+                    correctOptionIndex: shuffledOptions.findIndex(o => o.isCorrect)
+                  };
+                }
+                if (q.type === 'true_false' && q.options && q.correctAnswers) {
+                  const optionsWithAnswers = q.options.map((opt, idx) => ({
+                    text: opt,
+                    answer: q.correctAnswers![idx]
+                  }));
+                  const finalShuffled = shuffleArray(optionsWithAnswers);
+                  return {
+                    ...q,
+                    options: finalShuffled.map(o => o.text),
+                    correctAnswers: finalShuffled.map(o => o.answer)
+                  };
+                }
+                return q;
+              });
+            }
+
+            // Shuffle questions if enabled
+            let shuffledQuestions: Question[] = [];
+            if (shuffleQuestions) {
+              const mcQuestions = shuffleArray(questionList.filter(q => q.type === 'multiple_choice'));
+              const tfQuestions = shuffleArray(questionList.filter(q => q.type === 'true_false')); 
+              shuffledQuestions = [...mcQuestions, ...tfQuestions];
+            } else {
+              shuffledQuestions = [...questionList];
+            }
 
             setQuestions(shuffledQuestions);
             setAnswers(new Array(shuffledQuestions.length).fill(-1).map((_, i) => 
