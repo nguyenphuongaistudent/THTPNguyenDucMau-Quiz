@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import DOMPurify from 'dompurify';
-import { collection, getDocs, addDoc, serverTimestamp, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, query, where, orderBy, setDoc, doc, deleteDoc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { Quiz, Question, User, Result } from '../types';
-import { Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Loader2, Send, X } from 'lucide-react';
+import { Quiz, Question, User, Result, Attempt } from '../types';
+import { Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Loader2, Send, X, RefreshCw } from 'lucide-react';
 import { formatDuration, cn } from '../lib/utils';
 import RichText from '../components/RichText';
 import { toast } from 'sonner';
@@ -29,7 +29,33 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   const [attemptError, setAttemptError] = useState<string | null>(null);
   const [violationCount, setViolationCount] = useState(0);
   const [showViolationWarning, setShowViolationWarning] = useState(false);
+  const [activeAttempt, setActiveAttempt] = useState<Attempt | null>(null);
   const lastViolationTime = useRef<number>(0);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync progress to Firestore
+  useEffect(() => {
+    if (!isStarted || !activeAttempt || submitting) return;
+
+    // Debounce sync to avoid too many writes
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        await setDoc(doc(db, 'attempts', activeAttempt.id), {
+          answers: JSON.stringify(answers),
+          violationCount,
+          lastUpdated: serverTimestamp()
+        }, { merge: true });
+      } catch (error) {
+        console.error('Error syncing attempt:', error);
+      }
+    }, 2000);
+
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, [answers, violationCount, isStarted, activeAttempt, submitting]);
 
   useEffect(() => {
     if (!isStarted || submitting || !quiz) return;
@@ -124,7 +150,18 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
   useEffect(() => {
     const fetchQuizData = async () => {
       try {
-        // Check attempts first
+        // 1. Check for existing attempt
+        const attemptsQ = query(
+          collection(db, 'attempts'),
+          where('studentUid', '==', user.uid),
+          where('quizId', '==', quizId)
+        );
+        const attemptsSnapshot = await getDocs(attemptsQ);
+        const existingAttempt = !attemptsSnapshot.empty 
+          ? { id: attemptsSnapshot.docs[0].id, ...attemptsSnapshot.docs[0].data() } as Attempt 
+          : null;
+
+        // 2. Check completed results
         const resultsQ = query(
           collection(db, 'results'),
           where('studentUid', '==', user.uid),
@@ -133,23 +170,20 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
         const resultsSnapshot = await getDocs(resultsQ);
         const attemptCount = resultsSnapshot.size;
 
-        const quizDoc = await getDocs(collection(db, 'quizzes'));
-        const foundQuiz = quizDoc.docs.find(doc => doc.id === quizId);
+        const quizDoc = await getDoc(doc(db, 'quizzes', quizId));
         
-        if (foundQuiz) {
-          const quizData = { id: foundQuiz.id, ...foundQuiz.data() } as Quiz;
+        if (quizDoc.exists()) {
+          const quizData = { id: quizDoc.id, ...quizDoc.data() } as Quiz;
           
           // Determine effective max attempts
           let effectiveMaxAttempts = quizData.maxAttempts || 0;
           
           // Check special attempt limits
           if (quizData.specialAttemptLimits && quizData.specialAttemptLimits.length > 0) {
-            // Check student-specific limits first
             const studentLimit = quizData.specialAttemptLimits.find(l => l.type === 'student' && l.targetId === user.uid);
             if (studentLimit) {
               effectiveMaxAttempts = studentLimit.maxAttempts;
             } else {
-              // Check class-specific limits
               const classLimit = quizData.specialAttemptLimits.find(l => l.type === 'class' && l.targetId === user.class);
               if (classLimit) {
                 effectiveMaxAttempts = classLimit.maxAttempts;
@@ -157,75 +191,117 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
             }
           }
 
-          if (user.role !== 'admin' && effectiveMaxAttempts > 0 && attemptCount >= effectiveMaxAttempts) {
+          if (user.role !== 'admin' && effectiveMaxAttempts > 0 && attemptCount >= effectiveMaxAttempts && !existingAttempt) {
             setAttemptError(`Bạn đã hết lượt làm bài thi này (Tối đa: ${effectiveMaxAttempts} lượt).`);
             setLoading(false);
             return;
           }
 
           setQuiz(quizData);
-          setTimeLeft(foundQuiz.data().duration * 60);
-          
-          const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', quizId, 'questions'), orderBy('order')));
-          let questionList = questionsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as Question[];
 
-          // Filter out hidden questions for non-admins
-          if (user.role !== 'admin') {
-            questionList = questionList.filter(q => !q.hidden);
+          if (existingAttempt) {
+            // Restore from existing attempt
+            setQuestions(existingAttempt.shuffledQuestions);
+            
+            // Handle serialized answers
+            let restoredAnswers: (number | boolean[])[] = [];
+            if (typeof existingAttempt.answers === 'string') {
+              try {
+                restoredAnswers = JSON.parse(existingAttempt.answers);
+              } catch (e) {
+                console.error('Error parsing restored answers:', e);
+                restoredAnswers = new Array(existingAttempt.shuffledQuestions.length).fill(-1).map((_, i) => 
+                  existingAttempt.shuffledQuestions[i].type === 'true_false' ? [null, null, null, null] : -1
+                );
+              }
+            } else {
+              restoredAnswers = existingAttempt.answers as any;
+            }
+            
+            setAnswers(restoredAnswers);
+            setViolationCount(existingAttempt.violationCount || 0);
+            setActiveAttempt(existingAttempt);
+            
+            // Calculate remaining time
+            let startTime: number;
+            if (existingAttempt.startTime && typeof (existingAttempt.startTime as any).toDate === 'function') {
+              startTime = (existingAttempt.startTime as any).toDate().getTime();
+            } else if (existingAttempt.startTime instanceof Date) {
+              startTime = existingAttempt.startTime.getTime();
+            } else {
+              startTime = Date.now();
+            }
+            
+            const now = Date.now();
+            const elapsedSeconds = Math.floor((now - startTime) / 1000);
+            const totalSeconds = quizData.duration * 60;
+            const remaining = Math.max(0, totalSeconds - elapsedSeconds);
+            
+            setTimeLeft(remaining);
+            setIsStarted(true); // Auto-start if attempt exists
+          } else {
+            // New attempt setup
+            setTimeLeft(quizData.duration * 60);
+            
+            const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', quizId, 'questions'), orderBy('order')));
+            let questionList = questionsSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            })) as Question[];
+
+            if (user.role !== 'admin') {
+              questionList = questionList.filter(q => !q.hidden);
+            }
+
+            const shuffleArray = <T,>(array: T[]): T[] => {
+              const newArr = [...array];
+              for (let i = newArr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+              }
+              return newArr;
+            };
+
+            // Shuffle options
+            questionList = questionList.map(q => {
+              if (q.type === 'multiple_choice' && q.options) {
+                const optionsWithCorrect = q.options.map((opt, idx) => ({
+                  text: opt,
+                  isCorrect: idx === q.correctOptionIndex
+                }));
+                const shuffledOptions = shuffleArray(optionsWithCorrect);
+                return {
+                  ...q,
+                  options: shuffledOptions.map(o => o.text),
+                  correctOptionIndex: shuffledOptions.findIndex(o => o.isCorrect)
+                };
+              }
+              if (q.type === 'true_false' && q.options && q.correctAnswers) {
+                const optionsWithAnswers = q.options.map((opt, idx) => ({
+                  text: opt,
+                  answer: q.correctAnswers![idx]
+                }));
+                const finalShuffled = shuffleArray(optionsWithAnswers);
+                return {
+                  ...q,
+                  options: finalShuffled.map(o => o.text),
+                  correctAnswers: finalShuffled.map(o => o.answer)
+                };
+              }
+              return q;
+            });
+
+            // Shuffle questions by type (Parts)
+            const mcQuestions = shuffleArray(questionList.filter(q => q.type === 'multiple_choice'));
+            const tfQuestions = shuffleArray(questionList.filter(q => q.type === 'true_false')); 
+            const shuffledQuestions = [...mcQuestions, ...tfQuestions];
+
+            setQuestions(shuffledQuestions);
+            setAnswers(new Array(shuffledQuestions.length).fill(-1).map((_, i) => 
+              shuffledQuestions[i].type === 'true_false' ? [null, null, null, null] : -1
+            ));
+            setReviewed(new Array(shuffledQuestions.length).fill(false));
           }
-
-          // Helper to shuffle array
-          const shuffleArray = <T,>(array: T[]): T[] => {
-            const newArr = [...array];
-            for (let i = newArr.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
-            }
-            return newArr;
-          };
-
-          // Shuffle options within each question
-          questionList = questionList.map(q => {
-            if (q.type === 'multiple_choice' && q.options) {
-              const optionsWithCorrect = q.options.map((opt, idx) => ({
-                text: opt,
-                isCorrect: idx === q.correctOptionIndex
-              }));
-              const shuffledOptions = shuffleArray(optionsWithCorrect);
-              return {
-                ...q,
-                options: shuffledOptions.map(o => o.text),
-                correctOptionIndex: shuffledOptions.findIndex(o => o.isCorrect)
-              };
-            }
-            if (q.type === 'true_false' && q.options && q.correctAnswers) {
-              const optionsWithAnswers = q.options.map((opt, idx) => ({
-                text: opt,
-                answer: q.correctAnswers![idx]
-              }));
-              const shuffledOptions = shuffleArray(optionsWithAnswers);
-              return {
-                ...q,
-                options: shuffledOptions.map(o => o.text),
-                correctAnswers: shuffledOptions.map(o => o.answer)
-              };
-            }
-            return q;
-          });
-
-          // Shuffle questions within their parts (MC first, then TF)
-          const mcQuestions = shuffleArray(questionList.filter(q => q.type === 'multiple_choice'));
-          const tfQuestions = shuffleArray(questionList.filter(q => q.type === 'true_false')); 
-          const shuffledQuestions = [...mcQuestions, ...tfQuestions];
-
-          setQuestions(shuffledQuestions);
-          setAnswers(new Array(shuffledQuestions.length).fill(-1).map((_, i) => 
-            shuffledQuestions[i].type === 'true_false' ? [null, null, null, null] : -1
-          ));
-          setReviewed(new Array(shuffledQuestions.length).fill(false));
         }
       } catch (error) {
         console.error('Error fetching quiz:', error);
@@ -260,6 +336,32 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
     }
     
     return tempDiv.innerHTML;
+  };
+
+  const startQuiz = async () => {
+    if (!quiz || questions.length === 0) return;
+    
+    try {
+      setLoading(true);
+      const attemptData = {
+        quizId,
+        studentUid: user.uid,
+        shuffledQuestions: questions,
+        answers: JSON.stringify(answers),
+        startTime: serverTimestamp(),
+        lastUpdated: serverTimestamp(),
+        violationCount: 0
+      };
+      
+      const attemptRef = await addDoc(collection(db, 'attempts'), attemptData);
+      setActiveAttempt({ id: attemptRef.id, ...attemptData } as any);
+      setIsStarted(true);
+    } catch (error) {
+      console.error('Error starting attempt:', error);
+      toast.error('Không thể bắt đầu bài thi. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = useCallback(async (isAutoSubmit = false) => {
@@ -342,6 +444,10 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
       toast.promise(submissionPromise, {
         loading: 'Đang nộp bài thi...',
         success: () => {
+          // Delete attempt on success
+          if (activeAttempt) {
+            deleteDoc(doc(db, 'attempts', activeAttempt.id)).catch(console.error);
+          }
           onComplete();
           return 'Nộp bài thành công!';
         },
@@ -468,7 +574,7 @@ export default function TakeQuiz({ quizId, user, onComplete, onCancel }: TakeQui
               Quay lại
             </button>
             <button
-              onClick={() => setIsStarted(true)}
+              onClick={startQuiz}
               className="flex-1 bg-stone-900 text-white py-4 px-8 rounded-2xl hover:bg-stone-800 transition-all font-medium shadow-lg shadow-stone-200"
             >
               Bắt đầu làm bài

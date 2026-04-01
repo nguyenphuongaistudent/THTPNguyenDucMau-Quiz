@@ -30,8 +30,12 @@ export default function Leaderboard() {
       console.error("Error listening to quizzes:", error);
     });
 
-    // Fetch results
-    const resultsQuery = query(collection(db, 'results'), orderBy('completedAt', 'desc'));
+    // Fetch results - limit to top 200 to save quota
+    const resultsQuery = query(
+      collection(db, 'results'), 
+      orderBy('completedAt', 'desc'),
+      limit(200)
+    );
     const resultsUnsubscribe = onSnapshot(resultsQuery, (snapshot) => {
       const resultList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Result[];
       setResults(resultList);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where, orderBy, setDoc, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, limit, setDoc, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, updateUserEmail, updateUserPassword, reauthenticateUser } from '../firebase';
 import { Quiz, User, Result } from '../types';
 import { Clock, ChevronRight, BookOpen, Search, Filter, AlertCircle, CheckCircle2, UserCircle, School, Save, Loader2, XCircle, Settings, Key, Mail, GripVertical } from 'lucide-react';
@@ -40,7 +40,8 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
   useEffect(() => {
     const q = query(
       collection(db, 'quizzes'),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(100)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -79,7 +80,7 @@ export default function Home({ user, onTakeQuiz }: HomeProps) {
     // Fetch user results to count attempts
     const resultsQ = query(
       collection(db, 'results'),
-      where('userId', '==', user.uid)
+      where('studentUid', '==', user.uid)
     );
 
     const unsubscribeResults = onSnapshot(resultsQ, (snapshot) => {

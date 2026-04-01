@@ -3,7 +3,7 @@ import ReactQuill from 'react-quill-new';
 import * as XLSX from 'xlsx';
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
-import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, writeBatch, deleteField, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, writeBatch, deleteField, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Quiz, Question, User, QuestionType, Result, SpecialAttemptLimit } from '../types';
 import { Plus, Trash2, Edit, ChevronRight, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Save, X, List, PlusCircle, Upload, Download, FileSpreadsheet, ChevronDown, ChevronUp, BarChart3, UserPlus, Users, GripVertical, Eye, EyeOff, Shield } from 'lucide-react';
@@ -268,8 +268,9 @@ const QuizStatsModal = ({ quiz, onClose }: { quiz: Quiz; onClose: () => void }) 
         const resultsSnapshot = await getDocs(resultsQ);
         const results = resultsSnapshot.docs.map(doc => doc.data() as Result);
 
-        const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', quiz.id, 'questions'), orderBy('order')));
-        const questions = questionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+        const questionsSnapshot = await getDocs(collection(db, 'quizzes', quiz.id, 'questions'));
+        const questions = questionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question))
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
         const questionStats: Record<string, { wrong: number; total: number }> = {};
         
@@ -289,12 +290,14 @@ const QuizStatsModal = ({ quiz, onClose }: { quiz: Quiz; onClose: () => void }) 
           }
         });
 
-        const sortedStats = questions.map(q => ({
-          questionId: q.id,
-          text: q.text,
-          wrongCount: questionStats[q.id]?.wrong || 0,
-          totalCount: questionStats[q.id]?.total || 0
-        })).sort((a, b) => b.wrongCount - a.wrongCount);
+        const sortedStats = questions
+          .filter(q => q !== undefined && q !== null)
+          .map(q => ({
+            questionId: q.id,
+            text: q.text,
+            wrongCount: questionStats[q.id]?.wrong || 0,
+            totalCount: questionStats[q.id]?.total || 0
+          })).sort((a, b) => b.wrongCount - a.wrongCount);
 
         setStats(sortedStats);
       } catch (error) {
@@ -312,7 +315,7 @@ const QuizStatsModal = ({ quiz, onClose }: { quiz: Quiz; onClose: () => void }) 
       <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full max-w-4xl max-h-[80vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         <div className="px-8 py-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
-          <h2 className="text-2xl font-sans font-bold text-blue-950">Thống kê câu hỏi hay sai: {quiz.title}</h2>
+          <h2 className="text-xl font-sans font-bold text-blue-950">Thống kê câu hỏi hay sai: {quiz.title}</h2>
           <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors">
             <X className="w-6 h-6" />
           </button>
@@ -410,7 +413,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, 'users'), orderBy('displayName', 'asc'));
+    // Fetch users - limit to 200 to save quota
+    const q = query(collection(db, 'users'), orderBy('displayName', 'asc'), limit(200));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const userList = snapshot.docs.map(doc => ({
         uid: doc.id,
@@ -436,11 +440,15 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   const handleEditQuiz = async (quiz: Quiz) => {
     setEditingQuiz(quiz);
     setSaving(true);
-    const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', quiz.id, 'questions'), orderBy('order')));
+    const questionsSnapshot = await getDocs(collection(db, 'quizzes', quiz.id, 'questions'));
     const questionList = questionsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     })) as Question[];
+    
+    // Sort in memory
+    questionList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
     setEditingQuestions(questionList);
     setOriginalQuestionIds(questionList.map(q => q.id));
     setExpandedQuestions({ 0: true }); // Expand first question by default
@@ -471,7 +479,15 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       subject: 'Toán',
       topic: 'regular',
       duration: 30,
-      isActive: true
+      isActive: true,
+      securitySettings: {
+        preventTabSwitch: false,
+        maxViolations: 0,
+        autoSubmitOnMaxViolations: false,
+        showWarningOnViolation: true,
+        shuffleQuestions: true,
+        shuffleOptions: true
+      }
     });
     setEditingQuestions([{
       type: 'multiple_choice',
@@ -517,7 +533,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 
   const handleExportQuiz = async (quiz: Quiz) => {
     try {
-      const questionsSnapshot = await getDocs(query(collection(db, 'quizzes', quiz.id, 'questions'), orderBy('order')));
+      const questionsSnapshot = await getDocs(collection(db, 'quizzes', quiz.id, 'questions'));
       const questions = questionsSnapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -529,7 +545,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
           explanation: data.explanation,
           order: data.order
         };
-      });
+      }).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
       const exportData = {
         title: quiz.title,
@@ -604,7 +620,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
 
     // Validate questions
     const validQuestions = editingQuestions.filter(q => {
-      if (!q.text) return false;
+      if (!q || !q.text) return false;
       if (q.type === 'multiple_choice') {
         return q.options && q.options.length >= 2 && q.options.every(opt => opt && opt.trim() !== '');
       } else if (q.type === 'true_false') {
@@ -649,11 +665,13 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         reviewRoles: editingQuiz.reviewRoles || ['student', 'student-vip', 'guest'],
         specialAttemptLimits: editingQuiz.specialAttemptLimits || [],
         order: editingQuiz.order ?? 0,
-        securitySettings: editingQuiz.securitySettings || {
-          preventTabSwitch: false,
-          maxViolations: 0,
-          autoSubmitOnMaxViolations: false,
-          showWarningOnViolation: true
+        securitySettings: {
+          preventTabSwitch: editingQuiz.securitySettings?.preventTabSwitch || false,
+          maxViolations: Number(editingQuiz.securitySettings?.maxViolations || 0),
+          autoSubmitOnMaxViolations: editingQuiz.securitySettings?.autoSubmitOnMaxViolations || false,
+          showWarningOnViolation: editingQuiz.securitySettings?.showWarningOnViolation ?? true,
+          shuffleQuestions: editingQuiz.securitySettings?.shuffleQuestions ?? true,
+          shuffleOptions: editingQuiz.securitySettings?.shuffleOptions ?? true
         },
         updatedAt: serverTimestamp()
       };
@@ -1056,7 +1074,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
               {filteredQuizzes.length > 0 ? filteredQuizzes.map((quiz) => (
                 <tr key={quiz.id} className="hover:bg-stone-50/50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-medium text-stone-900">{quiz.title}</div>
+                    <div className="text-sm font-medium text-stone-900">{quiz.title}</div>
                     <div className="text-xs text-stone-400 line-clamp-1">{quiz.description}</div>
                   </td>
                   <td className="px-6 py-4 text-sm text-stone-600">
@@ -1427,7 +1445,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                         </div>
                         <button
                           onClick={() => {
-                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true };
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true, shuffleQuestions: true, shuffleOptions: true };
                             setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, preventTabSwitch: !currentSettings.preventTabSwitch } });
                           }}
                           className={cn(
@@ -1449,7 +1467,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                         </div>
                         <button
                           onClick={() => {
-                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true };
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true, shuffleQuestions: true, shuffleOptions: true };
                             setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, showWarningOnViolation: !currentSettings.showWarningOnViolation } });
                           }}
                           className={cn(
@@ -1463,6 +1481,50 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                           )} />
                         </button>
                       </div>
+
+                      <div className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl border border-stone-200">
+                        <div>
+                          <p className="text-sm font-bold text-stone-900">Đảo thứ tự câu hỏi</p>
+                          <p className="text-xs text-stone-500">Xáo trộn vị trí các câu hỏi trong đề thi</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true, shuffleQuestions: true, shuffleOptions: true };
+                            setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, shuffleQuestions: !currentSettings.shuffleQuestions } });
+                          }}
+                          className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                            editingQuiz?.securitySettings?.shuffleQuestions ?? true ? "bg-emerald-600" : "bg-stone-300"
+                          )}
+                        >
+                          <span className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                            editingQuiz?.securitySettings?.shuffleQuestions ?? true ? "translate-x-6" : "translate-x-1"
+                          )} />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl border border-stone-200">
+                        <div>
+                          <p className="text-sm font-bold text-stone-900">Đảo thứ tự phương án</p>
+                          <p className="text-xs text-stone-500">Xáo trộn vị trí các đáp án trong mỗi câu hỏi</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true, shuffleQuestions: true, shuffleOptions: true };
+                            setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, shuffleOptions: !currentSettings.shuffleOptions } });
+                          }}
+                          className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                            editingQuiz?.securitySettings?.shuffleOptions ?? true ? "bg-emerald-600" : "bg-stone-300"
+                          )}
+                        >
+                          <span className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                            editingQuiz?.securitySettings?.shuffleOptions ?? true ? "translate-x-6" : "translate-x-1"
+                          )} />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-4">
@@ -1472,7 +1534,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                           type="number"
                           value={editingQuiz?.securitySettings?.maxViolations || 0}
                           onChange={(e) => {
-                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true };
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true, shuffleQuestions: true, shuffleOptions: true };
                             setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, maxViolations: Number(e.target.value) } });
                           }}
                           className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
@@ -1488,7 +1550,7 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                         <button
                           disabled={!editingQuiz?.securitySettings?.maxViolations}
                           onClick={() => {
-                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true };
+                            const currentSettings = editingQuiz?.securitySettings || { preventTabSwitch: false, maxViolations: 0, autoSubmitOnMaxViolations: false, showWarningOnViolation: true, shuffleQuestions: true, shuffleOptions: true };
                             setEditingQuiz({ ...editingQuiz, securitySettings: { ...currentSettings, autoSubmitOnMaxViolations: !currentSettings.autoSubmitOnMaxViolations } });
                           }}
                           className={cn(

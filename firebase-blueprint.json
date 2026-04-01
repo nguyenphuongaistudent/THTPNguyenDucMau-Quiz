@@ -13,7 +13,10 @@
         "class": { "type": "string", "description": "Lớp học" },
         "role": { "type": "string", "enum": ["admin", "teacher", "student", "student-vip", "guest"], "description": "Vai trò người dùng" },
         "isApproved": { "type": "boolean", "description": "Trạng thái phê duyệt tài khoản" },
-        "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo tài khoản" }
+        "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo tài khoản" },
+        "lastLoginAt": { "type": "string", "format": "date-time", "description": "Thời gian đăng nhập cuối cùng" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Thời gian cập nhật cuối cùng" },
+        "password": { "type": "string", "description": "Mật khẩu tạm thời cho người dùng được import" }
       },
       "required": ["uid", "email", "role"]
     },
@@ -30,7 +33,9 @@
         "maxAttempts": { "type": "integer", "description": "Số lượt thi tối đa" },
         "createdBy": { "type": "string", "description": "UID của admin tạo đề" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Ngày tạo đề" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Ngày cập nhật đề" },
         "isActive": { "type": "boolean", "description": "Trạng thái đề thi" },
+        "order": { "type": "integer", "description": "Thứ tự hiển thị" },
         "allowedRoles": {
           "type": "array",
           "items": { "type": "string", "enum": ["student", "student-vip", "guest"] },
@@ -84,9 +89,12 @@
           "items": { "type": "boolean" },
           "description": "Danh sách đáp án Đúng/Sai cho 4 ý (a, b, c, d)"
         },
-        "explanation": { "type": "string", "description": "Giải thích đáp án" }
+        "explanation": { "type": "string", "description": "Giải thích đáp án" },
+        "order": { "type": "integer", "description": "Thứ tự câu hỏi" },
+        "hidden": { "type": "boolean", "description": "Trạng thái ẩn câu hỏi" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Ngày cập nhật câu hỏi" }
       },
-      "required": ["type", "text", "options"]
+      "required": ["type", "text", "options", "order"]
     },
     "Result": {
       "title": "Result",
@@ -121,12 +129,21 @@
         "violationCount": { "type": "integer", "description": "Số lần vi phạm" }
       },
       "required": ["quizId", "studentUid", "score", "completedAt"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Cấu hình hệ thống.",
+      "type": "object",
+      "properties": {
+        "registrationEnabled": { "type": "boolean", "description": "Cho phép đăng ký tài khoản mới" }
+      }
     }
   },
   "firestore": {
     "/users/{uid}": { "schema": "User", "description": "Thông tin người dùng" },
     "/quizzes/{quizId}": { "schema": "Quiz", "description": "Danh sách các bài thi" },
     "/quizzes/{quizId}/questions/{questionId}": { "schema": "Question", "description": "Câu hỏi của từng bài thi" },
-    "/results/{resultId}": { "schema": "Result", "description": "Kết quả thi của học sinh" }
+    "/results/{resultId}": { "schema": "Result", "description": "Kết quả thi của học sinh" },
+    "/settings/registration": { "schema": "Settings", "description": "Cấu hình đăng ký hệ thống" }
   }
 }
